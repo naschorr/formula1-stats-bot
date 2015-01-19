@@ -150,8 +150,6 @@ def main():
 		print " > Removing already archived comments -",
 		rmCom = removeDuplicates(trimCom)
 		print len(trimCom)- len(rmCom), "comments removed." 
-		print len(trimCom), len(rmCom)
-
 
 		print " > Adding", len(rmCom), "comments to database:", credentials.database()
 		print
