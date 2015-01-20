@@ -1,4 +1,4 @@
-# r-formula1-stats-bot
+# /r/formula1 stats bot
 Analyzes trends in driver and team popularity by analyzing subreddit user flair.
 
 Start by renaming example_credentials.py to credentials.py, and fill in the relevant database and user information. Next, assuming everything is set up properly, it'll start pulling data from reddit.
