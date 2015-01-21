@@ -18,3 +18,5 @@ To do:
     - Possibly simplify output and add a verbose option?
 
 - Handle connection error with an immediate re-request? Need to confirm that praw doesn't already do this.
+
+- Dynamically change the wait time between requests based on frequency of new comments?
