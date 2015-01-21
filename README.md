@@ -16,3 +16,5 @@ To do:
 - Fix output. ("Removing already archived comments" gives an incorrect value)
   
     - Possibly simplify output and add a verbose option?
+
+- Handle connection error with an immediate re-request? Need to confirm that praw doesn't already do this.
