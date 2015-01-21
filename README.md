@@ -19,4 +19,4 @@ To do:
 
 - Handle connection error with an immediate re-request? Need to confirm that praw doesn't already do this.
 
-- Dynamically change the wait time between requests based on frequency of new comments?
+- Dynamically change the wait time between requests based on frequency of new comments.
