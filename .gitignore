@@ -1,1 +1,15 @@
+# Ignore credentials, as it contains sensitive data.
 credentials.py
+
+# Ignore the pip-selfcheck, allegedly it's the result of 
+# something weird happening when you run pip in a VM?
+pip-selfcheck.json
+
+# Ignore .pyc files
+*.pyc
+
+#Ignore  these directories
+bin/
+include/
+lib/
+local/
