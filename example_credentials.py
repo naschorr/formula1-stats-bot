@@ -1,3 +1,6 @@
+## RENAME THIS FILE TO "credentials.py"
+
+## Fill in these variables with the appropriate data.
 DATABASE = "database"
 HOSTNAME = "host"
 USERNAME = "user"
