@@ -3,7 +3,7 @@ Analyzes trends in driver and team popularity by analyzing subreddit user flair.
 
 Start by renaming example_credentials.py to credentials.py, and fill in the relevant database and user information. Next, assuming everything is set up properly, it'll start pulling data from reddit.
 
-Requires praw, a postgres database, and psycopg2 to interface with the databse.
+Using praw (2.1.19), a postgres (9.1.14) database, and psycopg2 (2.5.1) to interface with the databse.
 
 To do:
 
