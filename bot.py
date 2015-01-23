@@ -5,7 +5,7 @@ import sys
 import os
 import credentials  ## This is a separate file that holds the credentials for accessing the database
 			## Rather than build a parser manually, it relys on python functions to
-			## retrieve the data
+			## retrieve the data. Look at "example_credentials.py" to get it set up.
 
 ## Globals
 WAIT_TIME = 60
@@ -99,7 +99,7 @@ class ST(STNode):  ## INCOMPLETE -- Relying on slower comparison method for debu
 		left = node.left
 		right = node.right
 	
-	## FINISH
+	## FINISH THIS
 
 
 def getComments():  ## Gets 25 most recent comments from subreddit
@@ -145,13 +145,15 @@ def main():
 
 		print " > Removing comments that didn't have author flair -",
 		trimCom = trimComments(com)
-		print 25 - len(trimCom), "comments removed."
+		lenTrimCom = len(trimCom)
+		print 25 - lenTrimCom, "comments removed."
 
 		print " > Removing already archived comments -",
 		rmCom = removeDuplicates(trimCom)
-		print len(trimCom)- len(rmCom), "comments removed." 
+		lenRmCom = len(rmCom)
+		print lenTrimCom - lenRmCom, "comments removed." 
 
-		print " > Adding", len(rmCom), "comments to database:", credentials.database()
+		print " > Adding", lenRmCom, "comments to database:", credentials.database()
 		print
 		addComments(rmCom)
 
