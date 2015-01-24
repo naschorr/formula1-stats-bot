@@ -8,7 +8,9 @@ import credentials  ## This is a separate file that holds the credentials for ac
 			## retrieve the data. Look at "example_credentials.py" to get it set up.
 
 ## Globals
+MAX_WAIT_TIME = 60
 WAIT_TIME = 60
+MIN_WAIT_TIME = 2
 
 ## Praw setup
 USER_AGENT = ("F1Bot 0.1")
@@ -57,7 +59,7 @@ class Comment:
 		print self.flair
 		print self.text
 
-class STNode:
+class Node:
         """ Structure to hold the data for each node """
         def __init__(self, key, Value):
                 self.key = key
@@ -78,28 +80,6 @@ class STNode:
         value = property(getter, setter, deleter, "Value of the node")
         left = property(getter, setter, deleter, "Link to the left child node")
 	right = property(getter, setter, deleter, "Link to the right child node")
-
-
-class ST(STNode):  ## INCOMPLETE -- Relying on slower comparison method for debugging.
-	""" Simple search tree to make parsing valid comments easier and faster """
-	def __init__(self, comment):
-		self.init = STNode(comment.id, comment)
-
-	def _hash(self, value):
-		stringList = [str(i) for i in str(value)]
-		hash = 0
-		for i in stringList:
-			hash += int(i) * 101
-		return hash
-
-	def findNode(self, comment):
-		key = _hash(comment.id)
-		node = self.init
-		label = node.key
-		left = node.left
-		right = node.right
-	
-	## FINISH THIS
 
 
 def getComments():  ## Gets 25 most recent comments from subreddit
@@ -138,7 +118,24 @@ def addComments(comments):  ## Adds comments to the database
 	DB.commit()
 
 
+def adjustWaitTime(times):
+	global WAIT_TIME
+
+	avg = 0.0
+	for i in times:
+		avg += i
+	avg = avg/len(times)
+	wait = int(((MAX_WAIT_TIME)/-25)*avg+(MAX_WAIT_TIME))
+	if MAX_WAIT_TIME >= wait >= MIN_WAIT_TIME:
+		WAIT_TIME = wait
+	elif wait < MIN_WAIT_TIME:
+		WAIT_TIME = MIN_WAIT_TIME
+	else:
+		WAIT_TIME = MAX_WAIT_TIME
+
+
 def main():
+	prevComLen = []
 	while(True):
 		print " > Retrieving comments from the subreddit."
 		com = getComments()
@@ -157,11 +154,24 @@ def main():
 		print
 		addComments(rmCom)
 
-		for i in range(WAIT_TIME):
-			sys.stdout.write("\rNext comment retrieval in: %s " %(WAIT_TIME - i))
-			sys.stdout.flush()
-			time.sleep(1)
-		print
+		## Build list of previous comments, and use it to modify the wait time
+		if len(prevComLen) < 3:
+			prevComLen.append(lenRmCom)
+		else:
+			del prevComLen[0]
+			prevComLen.append(lenRmCom)
+		adjustWaitTime(prevComLen)
+
+		## Wait for next data retrieval
+		try:
+			for i in range(WAIT_TIME):
+				sys.stdout.write("\rNext comment retrieval in: %s " %(WAIT_TIME - i))
+				sys.stdout.flush()
+				time.sleep(1)
+			print
+		except KeyboardInterrupt:
+			print "\nHalted by user."
+			sys.exit()
 
 
 main()
