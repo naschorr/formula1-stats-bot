@@ -1,6 +1,6 @@
 # /r/formula1 stats bot
 
-####Analyzes trends in driver and team popularity by analyzing subreddit user flair.
+Analyzes trends in driver and team popularity by analyzing subreddit user flair.
 ------
 ####To use:
 
