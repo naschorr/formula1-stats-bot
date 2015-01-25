@@ -27,7 +27,11 @@ except:
 	print sys.exc_info()[1]
 	sys.exit()
 
-
+## Desc	- Structure to hold relevant data from reddit comments
+## In	- str post_id, str author, str created_utc, str flair_text, str body
+## Out	- Nothing
+## Mod	- Nothing
+## ToDo	- Return status code on successful creation?
 class Comment:
 	""" Simple structure to hold relevant comment data """
 	def __init__(self, post_id, author, created_utc, flair_text, body):
@@ -59,6 +63,8 @@ class Comment:
 		print self.flair
 		print self.text
 
+
+## Add documentation here
 class Node:
         """ Search tree structure """
         def __init__(self, key, Value):
@@ -82,14 +88,28 @@ class Node:
 	right = property(getter, setter, deleter, "Link to the right child node")
 
 
-def getComments():  ## Gets 25 most recent comments from subreddit
+## Desc	- Gets 25 most recent comments from subreddit
+## In	- Nothing (subreddit defined globally)
+## Out	- (praw comment) list comments
+## Mod	- Nothing
+## ToDo	- Return status code?
+##	- Build comment objects here
+def getComments():
 	prawComments =  SUBREDDIT.get_comments()
 	comments = []
 	for i in prawComments:
 		comments.append(i)
 	return comments
 
-def trimComments(comments):  ## Returns a list with irrelevant comments removed (No flair)
+
+## Desc	- Removes comments without user flair
+## In	- (comment) list comments
+## Out	- (comment) list trimmed
+## Mod	- Nothing
+## ToDo	- Return status code?
+##	- Refactor to return (comment) list comments?
+##	- Remove comment object generation, and let getComments() handle it?
+def trimComments(comments):
 	trimmed = []
 	for i in comments:
 		if i.author_flair_text != None:
@@ -98,7 +118,13 @@ def trimComments(comments):  ## Returns a list with irrelevant comments removed 
 	return trimmed
 
 
-def removeDuplicates(comments):  ## Removes comments that have already been archived
+## Desc	- Removes comments that have already been archived inside the database
+## In	- (comment) list comments
+## Out	- (comment) list comments with duplicates removed
+## Mod	- Nothing
+## ToDo	- Return status code?
+##	- Use variable to select columns and table?
+def removeDuplicates(comments):
 	CUR.execute("SELECT post_id FROM f1_bot;")
 	for entry in CUR:
 		for i in xrange(len(comments)-1,-1,-1):
@@ -107,7 +133,13 @@ def removeDuplicates(comments):  ## Removes comments that have already been arch
 	return comments
 
 
-def addComments(comments):  ## Adds comments to the database
+## Desc	- Adds comments to the databse
+## In	- (comment) list comments
+## Out	- Prints "valid" comments
+## Mod	- Inserts comment data into database's table
+## ToDo	- Return a status code?
+##	- Use variable to select columns and table?
+def addComments(comments):
 	for i in comments:
 		i.printAll()
 		print
@@ -118,6 +150,12 @@ def addComments(comments):  ## Adds comments to the database
 	DB.commit()
 
 
+## Desc	- Adjusts wait time between comment retrievals based on comment frequency
+## In	- (int) list times
+## Out	- Nothing
+## Mod	- global WAIT_TIME, with newly calculated wait time (int)
+## ToDo	- Alter to get rid of globals, and simply return the wait time.
+## 	- Return a status code?
 def adjustWaitTime(times):
 	global WAIT_TIME
 
