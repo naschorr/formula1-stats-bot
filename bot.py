@@ -60,7 +60,7 @@ class Comment:
 		print self.text
 
 class Node:
-        """ Structure to hold the data for each node """
+        """ Search tree structure """
         def __init__(self, key, Value):
                 self.key = key
                 self.value = value
@@ -135,7 +135,7 @@ def adjustWaitTime(times):
 
 
 def main():
-	prevComLen = []
+	recentCom = []
 	while(True):
 		print " > Retrieving comments from the subreddit."
 		com = getComments()
@@ -155,12 +155,12 @@ def main():
 		addComments(rmCom)
 
 		## Build list of previous comments, and use it to modify the wait time
-		if len(prevComLen) < 3:
-			prevComLen.append(lenRmCom)
+		if len(recentCom) < 3:
+			recentCom.append(lenRmCom)
 		else:
-			del prevComLen[0]
-			prevComLen.append(lenRmCom)
-		adjustWaitTime(prevComLen)
+			del recentCom[0]
+			recentCom.append(lenRmCom)
+		adjustWaitTime(recentCom)
 
 		## Wait for next data retrieval
 		try:
