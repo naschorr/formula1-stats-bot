@@ -9,8 +9,9 @@ import credentials  ## This is a separate file that holds the credentials for ac
 
 ## Globals
 MAX_WAIT_TIME = 60
-WAIT_TIME = 60
-MIN_WAIT_TIME = 2
+WAIT_TIME = 30
+MIN_WAIT_TIME = 2  ## Minimum time between requests (according to reddit API)
+ROWS = 0
 
 ## Praw setup
 USER_AGENT = ("F1Bot 0.1")
@@ -88,6 +89,16 @@ class Node:
 	right = property(getter, setter, deleter, "Link to the right child node")
 
 
+## Desc	- Counts the number of rows in the database
+## In 	- Nothing (cursor defined globally)
+## Out	- long int rows
+## Mod	- Nothing
+## ToDo - Nothing
+def countRows():
+	CUR.execute("SELECT COUNT(*) FROM f1_bot;")
+	return CUR.fetchone()[0]
+
+
 ## Desc	- Gets 25 most recent comments from subreddit
 ## In	- Nothing (subreddit defined globally)
 ## Out	- (praw comment) list comments
@@ -125,13 +136,19 @@ def trimComments(comments):
 ## ToDo	- Return status code?
 ##	- Use variable to select columns and table?
 def removeDuplicates(comments):
-	CUR.execute("SELECT post_id FROM f1_bot;")
-	for entry in CUR:
-		for i in xrange(len(comments)-1,-1,-1):
-			if entry[0] == comments[i].id:
-				del comments[i]
+	startRow = ROWS - 25
+	endRow = ROWS
+	while(len(comments) > 0 and startRow >= 0):
+		CUR.execute("SELECT post_id FROM (SELECT post_id, ROW_NUMBER() OVER (ORDER "
+			    "BY post_id) AS RowNum FROM f1_bot) AS f1_bot WHERE f1_bot.RowNum "
+			    "BETWEEN %s and %s;", (startRow, endRow))
+		for entry in CUR:
+			for i in xrange(len(comments)-1,-1,-1):
+				if entry[0] == comments[i].id:
+					del comments[i]
+		startRow -= 25
+		endRow -= 25
 	return comments
-
 
 ## Desc	- Adds comments to the databse
 ## In	- (comment) list comments
@@ -155,6 +172,7 @@ def addComments(comments):
 ## Out	- Nothing
 ## Mod	- global WAIT_TIME, with newly calculated wait time (int)
 ## ToDo	- Alter to get rid of globals, and simply return the wait time.
+##	- Improve wait time calculation (currently linear)
 ## 	- Return a status code?
 def adjustWaitTime(times):
 	global WAIT_TIME
@@ -173,8 +191,12 @@ def adjustWaitTime(times):
 
 
 def main():
+	global ROWS
+	ROWS = countRows()
+	## ToDo - Split each comment operation into it's own function
 	recentCom = []
 	while(True):
+		print "Total rows:", ROWS
 		print " > Retrieving comments from the subreddit."
 		com = getComments()
 
@@ -187,6 +209,7 @@ def main():
 		rmCom = removeDuplicates(trimCom)
 		lenRmCom = len(rmCom)
 		print lenTrimCom - lenRmCom, "comments removed." 
+		ROWS += lenRmCom
 
 		print " > Adding", lenRmCom, "comments to database:", credentials.database()
 		print
@@ -209,6 +232,10 @@ def main():
 			print
 		except KeyboardInterrupt:
 			print "\nHalted by user."
+			sys.exit()
+		except:
+			print "\nUnhandled exception."
+			print sys.exc_info[0], sys.exc_info[1]
 			sys.exit()
 
 
