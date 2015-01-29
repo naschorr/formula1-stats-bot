@@ -211,11 +211,12 @@ def verboseMode():
 
     print " > Adding", lenRmCom, "comments to database:", credentials.database()
     addComments(rmCom)
-    print " > There are", ROWS, "rows in the database\n"
+    print " > There are", ROWS, "comments in the database.", "\n"
 
-    for i in rmCom:
-        i.printAll()
-        print
+    if lenRmCom > 0:
+        for i in rmCom:
+            i.printAll()
+            print
 
     return rmCom
 
@@ -230,7 +231,7 @@ def quietMode():
     com = removeDuplicates(trimComments(getComments()))
     lenCom = len(com)
     ROWS += lenCom
-    print " > Adding", lenCom, "comments to database:", credentials.database(), "\n"
+    print " > Adding", lenCom, "comments to:", credentials.database()
     addComments(com)
 
     return com
@@ -247,7 +248,8 @@ def waitFor(sleepInterval):
             sys.stdout.write("\rNext comment retrieval in: %s " %(WAIT_TIME - i))
             sys.stdout.flush()
             time.sleep(sleepInterval)
-        print
+        sys.stdout.write("\r")  ## Better way to clear buffer?
+        sys.stdout.flush()
 
     except KeyboardInterrupt:
         print "\nHalted by user."
