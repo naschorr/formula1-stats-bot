@@ -7,6 +7,7 @@ import credentials  ## This is a separate file that holds the credentials for ac
             ## retrieve the data. Look at "example_credentials.py" to get it set up.
 
 ## Globals
+WAIT_INTERVAL = 1
 MAX_WAIT_TIME = 60
 WAIT_TIME = 30
 MIN_WAIT_TIME = 2  ## Minimum time between requests (according to reddit API)
@@ -103,7 +104,7 @@ def countRows():
 ## Out  - (praw comment) list comments
 ## Mod  - Nothing
 ## ToDo - Return status code?
-##  - Build comment objects here
+##      - Build comment objects here
 def getComments():
     prawComments =  SUBREDDIT.get_comments()
     comments = []
@@ -117,8 +118,8 @@ def getComments():
 ## Out  - (comment) list trimmed
 ## Mod  - Nothing
 ## ToDo - Return status code?
-##  - Refactor to return (comment) list comments?
-##  - Remove comment object generation, and let getComments() handle it?
+##      - Refactor to return (comment) list comments?
+##      - Remove comment object generation, and let getComments() handle it?
 def trimComments(comments):
     trimmed = []
     for i in comments:
@@ -133,7 +134,7 @@ def trimComments(comments):
 ## Out  - (comment) list comments with duplicates removed
 ## Mod  - Nothing
 ## ToDo - Return status code?
-##  - Use variable to select columns and table?
+##      - Use variable to select columns and table?
 def removeDuplicates(comments):
     startRow = ROWS - 25
     endRow = ROWS
@@ -154,7 +155,7 @@ def removeDuplicates(comments):
 ## Out  - Prints "valid" comments
 ## Mod  - Inserts comment data into database's table
 ## ToDo - Return a status code?
-##  - Use variable to select columns and table?
+##      - Use variable to select columns and table?
 def addComments(comments):
     for i in comments:
         CUR.execute("INSERT INTO f1_bot (post_id, author, time_created, flair,"
@@ -169,8 +170,8 @@ def addComments(comments):
 ## Out  - Nothing
 ## Mod  - global WAIT_TIME, with newly calculated wait time (int)
 ## ToDo - Alter to get rid of globals, and simply return the wait time.
-##  - Improve wait time calculation (currently linear)
-##  - Return a status code?
+##      - Improve wait time calculation (currently linear)
+##      - Return a status code?
 def adjustWaitTime(times):
     global WAIT_TIME
 
@@ -178,7 +179,7 @@ def adjustWaitTime(times):
     for i in times:
         avg += i
     avg = avg/len(times)
-    wait = int(((MAX_WAIT_TIME)/-25)*avg+(MAX_WAIT_TIME))
+    wait = int(((MAX_WAIT_TIME) / -25) * avg + (MAX_WAIT_TIME))
     if MAX_WAIT_TIME >= wait >= MIN_WAIT_TIME:
         WAIT_TIME = wait
     elif wait < MIN_WAIT_TIME:
@@ -278,6 +279,6 @@ def main(args):
 
         adjustWaitTime(recentComments)
         
-        waitFor(1)
+        waitFor(WAIT_INTERVAL)
         
 main(sys.argv)
