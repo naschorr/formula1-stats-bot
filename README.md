@@ -21,8 +21,6 @@ This project uses praw (2.1.20), a postgres (9.1.14) database, and psycopg2 (2.5
   
 - Give functionality to parse through older comments.
 
-- Handle connection error with an immediate re-request? Need to confirm that praw doesn't already do this.
-
 - Improve function for the wait timer (currently linear, maybe something closer to x^-2?)
 
 - Add table information to credentials.py.
