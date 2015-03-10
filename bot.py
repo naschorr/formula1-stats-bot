@@ -113,10 +113,8 @@ def getComments():
             comments.append(i)
     except ValueError as ve:
         print "ValueError occurred - ", ve
-        continue
     except:
-        "Generic Exception - This shouldn't ever trigger. Ignoring current comments."
-        continue
+        print "Generic Exception in getComments() - This shouldn't ever trigger. Ignoring current comments."
     return comments
 
 
