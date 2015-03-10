@@ -2,7 +2,7 @@ import praw
 import time
 import psycopg2
 import sys
-import credentials  ## This is a separate file that holds the credentials for accessing the database
+import credentials as c  ## This is a separate file that holds the credentials for accessing the database
             ## Rather than build a parser manually, it relys on python functions to
             ## retrieve the data. Look at "example_credentials.py" to get it set up.
 
@@ -20,8 +20,8 @@ SUBREDDIT = REDDIT.get_subreddit("formula1")
 
 ## Psycopg2 setup
 try:
-    DB = psycopg2.connect(database=credentials.database(), host=credentials.hostname(),
-                  user=credentials.username(), password=credentials.password())
+    DB = psycopg2.connect(database=c.database(), host=c.hostname(),
+                  user=c.username(), password=c.password())
     CUR = DB.cursor()
 except:
     print "Unable to connect to database"
@@ -108,8 +108,15 @@ def countRows():
 def getComments():
     prawComments =  SUBREDDIT.get_comments()
     comments = []
-    for i in prawComments:
-        comments.append(i)
+    try:
+        for i in prawComments:
+            comments.append(i)
+    except ValueError as ve:
+        print "ValueError occurred - ", ve
+        continue
+    except:
+        "Generic Exception - This shouldn't ever trigger. Ignoring current comments."
+        continue
     return comments
 
 
@@ -196,6 +203,7 @@ def adjustWaitTime(times):
 ## ToDo - Nothing
 def verboseMode():
     global ROWS
+
     print " > Retrieving comments from the subreddit."
     com = getComments()
 
@@ -210,7 +218,7 @@ def verboseMode():
     print lenTrimCom - lenRmCom, "comments removed."
     ROWS += lenRmCom
 
-    print " > Adding", lenRmCom, "comments to database:", credentials.database()
+    print " > Adding", lenRmCom, "comments to database:", c.database()
     addComments(rmCom)
     print " > There are", ROWS, "comments in the database.", "\n"
 
@@ -229,10 +237,11 @@ def verboseMode():
 ## ToDo - Nothing
 def quietMode():
     global ROWS
+
     com = removeDuplicates(trimComments(getComments()))
     lenCom = len(com)
     ROWS += lenCom
-    print " > Adding", lenCom, "comments to:", credentials.database()
+    print " > Adding", lenCom, "comments to:", c.database()
     addComments(com)
 
     return com
@@ -263,6 +272,7 @@ def waitFor(sleepInterval):
 
 def main(args):
     global ROWS
+    
     ROWS = countRows()
     recentComments = []
     while(True):
