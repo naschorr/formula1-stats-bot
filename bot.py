@@ -2,6 +2,7 @@ import praw
 import time
 import psycopg2
 import sys
+from operator import itemgetter
 import credentials as c  ## This is a separate file that holds the credentials for accessing the database
             ## Rather than build a parser manually, it relys on python functions to
             ## retrieve the data. Look at "example_credentials.py" to get it set up.
@@ -65,29 +66,13 @@ class Comment:
         print self.text
 
 
-## Add documentation here
-class Node:
-        """ Search tree structure """
-        def __init__(self, key, value):
-                self.key = key
-                self.value = value
-                self.left = None
-                self.right = None
-
-        def getter(self):
-                return self.val
-
-        def setter(self, value):
-                return self.val
-
-        def deleter(self):
-                del self.val
-
-        key = property(getter, setter, deleter, "Key used to categorize the node")
-        value = property(getter, setter, deleter, "Value of the node")
-        left = property(getter, setter, deleter, "Link to the left child node")
-        right = property(getter, setter, deleter, "Link to the right child node")
-
+## Desc - Converts a base-36 number to base-10.
+## In   - (value) integer
+## Out  - long int value
+## Mod  - Nothing
+## ToDo - Nothing
+def decode36(value):
+    return int(value, 36)
 
 ## Desc - Counts the number of rows in the database
 ## In   - Nothing (cursor defined globally)
@@ -155,6 +140,20 @@ def removeDuplicates(comments):
         endRow -= 25
     return comments
 
+
+## Desc - Sorts comments by their post_id (converted to base-10) values
+## In   - (comments) list of comments
+## Out  - (comments) list of sorted comments
+## Mod  - Nothing
+## ToDo - Return staus code?
+def sortComments(comments):
+    data = []
+    for i in comments:
+        data.append((decode36(i.id), i))
+    data.sort(key=itemgetter(0))
+    return [i[1] for i in data]
+
+
 ## Desc - Adds comments to the databse
 ## In   - (comment) list comments
 ## Out  - Prints "valid" comments
@@ -163,9 +162,17 @@ def removeDuplicates(comments):
 ##      - Use variable to select columns and table?
 def addComments(comments):
     for i in comments:
-        CUR.execute("INSERT INTO f1_bot (post_id, author, time_created, flair,"
-                " body) VALUES (%s, %s, %s, %s, %s);", (i.id, i.author, 
-                i.time, i.flair, i.text))
+        try:
+            CUR.execute("INSERT INTO f1_bot (post_id, author, time_created, flair,"
+                    " body) VALUES (%s, %s, %s, %s, %s);", (i.id, i.author, 
+                    i.time, i.flair, i.text))
+        except psycopg2.IntegrityError:
+            print "Name duplicate found in database:", c.database()
+            print sys.exc_info()[1]
+            continue
+        except:
+            print "Generic exception in addComments() - This shouldn't ever trigger. Ignoring current comment."
+            continue
 
     DB.commit()
 
@@ -216,16 +223,22 @@ def verboseMode():
     print lenTrimCom - lenRmCom, "comments removed."
     ROWS += lenRmCom
 
-    print " > Adding", lenRmCom, "comments to database:", c.database()
-    addComments(rmCom)
+    print " > Sorting comments by their post id -",
+    sortCom = sortComments(rmCom)
+    lenSortCom = len(sortCom)
+    print lenSortCom, "comments sorted."
+
+    print " > Adding", lenSortCom, "comments to database:", c.database()
+    addComments(sortCom)
     print " > There are", ROWS, "comments in the database.", "\n"
 
-    if lenRmCom > 0:
-        for i in rmCom:
+    print " > Printing", lenSortCom, "comments to terminal."
+    if lenSortCom > 0:
+        for i in sortCom:
             i.printAll()
             print
 
-    return rmCom
+    return sortCom
 
 ## Desc - Stealthily calls comment retrieval functions, and only displays the number 
 ##          of accepted comments.
@@ -236,7 +249,7 @@ def verboseMode():
 def quietMode():
     global ROWS
 
-    com = removeDuplicates(trimComments(getComments()))
+    com = sortComments(removeDuplicates(trimComments(getComments())))
     lenCom = len(com)
     ROWS += lenCom
     print " > Adding", lenCom, "comments to:", c.database()
