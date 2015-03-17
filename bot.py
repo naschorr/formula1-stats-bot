@@ -3,6 +3,7 @@ import time
 import psycopg2
 import sys
 from operator import itemgetter
+import header
 import credentials as c  ## This is a separate file that holds the credentials for accessing the database
             ## Rather than build a parser manually, it relys on python functions to
             ## retrieve the data. Look at "example_credentials.py" to get it set up.
@@ -28,43 +29,6 @@ except:
     print "Unable to connect to database"
     print sys.exc_info()[1]
     sys.exit()
-
-## Desc - Structure to hold relevant data from reddit comments
-## In   - str post_id, str author, str created_utc, str flair_text, str body
-## Out  - Nothing
-## Mod  - Nothing
-## ToDo - Return status code on successful creation?
-class Comment:
-    """ Simple structure to hold relevant comment data """
-    def __init__(self, post_id, author, created_utc, flair_text, body):
-        self.id = str(post_id)
-        self.author = str(author)
-        self.time = int(created_utc)
-        self.flair = str(flair_text.encode('ascii','ignore'))
-        self.text = str(body.encode('ascii','ignore')).strip('\n').encode('string-escape')
-
-    def getter(self):
-        return self.val
-
-    def setter(self, value):
-        return self.val
-
-    def deleter(self):
-        del self.val
-
-    id = property(getter, setter, deleter, "Post ID of comment")
-    author = property(getter, setter, deleter, "Author of comment")
-    time = property(getter, setter, deleter, "Time created (UTC) of comment")
-    flair = property(getter, setter, deleter, "Flair of author of comment")
-    text = property(getter, setter, deleter, "Text of comment")
-
-    def printAll(self):
-        print self.id
-        print self.author
-        print self.time
-        print self.flair
-        print self.text
-
 
 ## Desc - Converts a base-36 number to base-10.
 ## In   - (value) integer
@@ -114,7 +78,7 @@ def trimComments(comments):
     trimmed = []
     for i in comments:
         if i.author_flair_text != None:
-            trimmed.append(Comment(i.id, i.author, i.created_utc, 
+            trimmed.append(header.Comment(i.id, i.author, i.created_utc, 
                            i.author_flair_text, i.body))
     return trimmed
 
@@ -125,10 +89,11 @@ def trimComments(comments):
 ## Mod  - Nothing
 ## ToDo - Return status code?
 ##      - Use variable to select columns and table?
+##      - Fix code that pulls rows from database - (startRow >= ROWS -25) is baaaad.
 def removeDuplicates(comments):
     startRow = ROWS - 25
     endRow = ROWS
-    while(len(comments) > 0 and startRow >= 0):
+    while(len(comments) > 0 and startRow >= ROWS - 25):
         CUR.execute("SELECT post_id FROM (SELECT post_id, ROW_NUMBER() OVER (ORDER "
                 "BY post_id) AS RowNum FROM f1_bot) AS f1_bot WHERE f1_bot.RowNum "
                 "BETWEEN %s and %s;", (startRow, endRow))
@@ -166,9 +131,9 @@ def addComments(comments):
             CUR.execute("INSERT INTO f1_bot (post_id, author, time_created, flair,"
                     " body) VALUES (%s, %s, %s, %s, %s);", (i.id, i.author, 
                     i.time, i.flair, i.text))
-        except psycopg2.IntegrityError:
-            print "Name duplicate found in database:", c.database()
-            print sys.exc_info()[1]
+        except Exception, e:
+            print "Exception in addComments() - Likely an IntegrityError. Ignoring comments."
+            print e.pgerror
             continue
         except:
             print "Generic exception in addComments() - This shouldn't ever trigger. Ignoring current comment."
