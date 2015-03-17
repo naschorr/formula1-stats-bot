@@ -31,6 +31,8 @@ This project uses praw (2.1.20), a postgres (9.1.14) database, and psycopg2 (2.5
 
 - Output table to a .csv file.
 
+- Improve file naming scheme.
+
 ------
 
 createtable f1_bot (
