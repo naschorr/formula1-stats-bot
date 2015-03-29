@@ -2,8 +2,8 @@ import praw
 import time
 import psycopg2
 import sys
-from operator import itemgetter
-import header
+import operator
+import comment
 import credentials as c  ## This is a separate file that holds the credentials for accessing the database
             ## Rather than build a parser manually, it relys on python functions to
             ## retrieve the data. Look at "example_credentials.py" to get it set up.
@@ -30,13 +30,6 @@ except:
     print sys.exc_info()[1]
     sys.exit()
 
-## Desc - Converts a base-36 number to base-10.
-## In   - (value) integer
-## Out  - long int value
-## Mod  - Nothing
-## ToDo - Nothing
-def decode36(value):
-    return int(value, 36)
 
 ## Desc - Counts the number of rows in the database
 ## In   - Nothing (cursor defined globally)
@@ -78,7 +71,7 @@ def trimComments(comments):
     trimmed = []
     for i in comments:
         if i.author_flair_text != None:
-            trimmed.append(header.Comment(i.id, i.author, i.created_utc, 
+            trimmed.append(comment.Comment(i.id, i.author, i.created_utc, 
                            i.author_flair_text, i.body))
     return trimmed
 
@@ -91,32 +84,24 @@ def trimComments(comments):
 ##      - Use variable to select columns and table?
 ##      - Fix code that pulls rows from database - (startRow >= ROWS -25) is baaaad.
 def removeDuplicates(comments):
-    startRow = ROWS - 25
-    endRow = ROWS
-    while(len(comments) > 0 and startRow >= ROWS - 25):
-        CUR.execute("SELECT post_id FROM (SELECT post_id, ROW_NUMBER() OVER (ORDER "
-                "BY post_id) AS RowNum FROM f1_bot) AS f1_bot WHERE f1_bot.RowNum "
-                "BETWEEN %s and %s;", (startRow, endRow))
-        for entry in CUR:
-            for i in xrange(len(comments)-1,-1,-1):
-                if entry[0] == comments[i].id:
-                    del comments[i]
-        startRow -= 25
-        endRow -= 25
+    CUR.execute("SELECT post_id from f1_bot ORDER BY post_id DESC LIMIT 1;")
+    lastValue = int(CUR.fetchone()[0], 36)
+    length = len(comments)-1
+    while(length >= 0 and comments[length].decodeId() <= lastValue):
+        del comments[length]
+        length -= 1
+
     return comments
 
 
+
 ## Desc - Sorts comments by their post_id (converted to base-10) values
-## In   - (comments) list of comments
-## Out  - (comments) list of sorted comments
+## In   - (comments) list of comment objects
+## Out  - (comments) list of sorted comment objects
 ## Mod  - Nothing
 ## ToDo - Return staus code?
 def sortComments(comments):
-    data = []
-    for i in comments:
-        data.append((decode36(i.id), i))
-    data.sort(key=itemgetter(0))
-    return [i[1] for i in data]
+    return sorted(comments, key=operator.methodcaller('decodeId'))
 
 
 ## Desc - Adds comments to the databse

@@ -3,7 +3,7 @@ import remote_credentials as rc
 import credentials as c
 import sys
 import operator
-import header
+import comment
 
 ## Psycopg2 remote setup
 try:
@@ -37,7 +37,7 @@ def getRemoteComments(chunkSize=25):
     comments = []
     remoteCUR.execute("SELECT * FROM f1_bot ORDER BY post_id LIMIT %s OFFSET %s;", (chunkSize, 0))
     for i in remoteCUR:
-        comments.append(header.Comment(i[0], i[1], i[2], i[3], i[4]))
+        comments.append(comment.Comment(i[0], i[1], i[2], i[3], i[4]))
     return comments
 
 
@@ -90,6 +90,7 @@ def main():
         comments = sortComments(getRemoteComments(chunkSize))
         print " > Adding comments to local database:", c.database()
         addComments(comments)
+        print " > Removing comments from remote database:", rc.database()
         deleteRemoteComments(len(comments))
         ctr += chunkSize
     print " >", ctr, "comments successfully migrated."
