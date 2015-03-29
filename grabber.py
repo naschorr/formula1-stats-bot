@@ -219,7 +219,7 @@ def waitFor(sleepInterval):
             sys.stdout.write("\rNext comment retrieval in: %s " %(WAIT_TIME - i))
             sys.stdout.flush()
             time.sleep(sleepInterval)
-        sys.stdout.write("\r")  ## Better way to clear buffer?
+        sys.stdout.write("\r")
         sys.stdout.flush()
 
     except KeyboardInterrupt:
