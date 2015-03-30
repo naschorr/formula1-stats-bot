@@ -9,6 +9,9 @@ pip-selfcheck.json
 # Ignore .pyc files
 *.pyc
 
+#Ignore praw
+praw
+
 #Ignore  these directories
 bin/
 include/
