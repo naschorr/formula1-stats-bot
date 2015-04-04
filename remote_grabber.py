@@ -74,7 +74,7 @@ def addComments(comments):
 ##      - Return status code?
 def deleteRemoteComments(chunkSize=25):
     remoteCUR.execute("DELETE FROM f1_bot WHERE ctid IN (SELECT ctid FROM f1_bot ORDER BY post_id "
-                      "LIMIT 25);")
+                      "LIMIT %s);", (chunkSize,))
     remoteDB.commit()
 
 
@@ -94,6 +94,8 @@ def main():
         deleteRemoteComments(len(comments))
         ctr += chunkSize
     print " >", ctr, "comments successfully migrated."
+    CUR.execute("SELECT COUNT(*) FROM f1_bot;")
+    print " > There are now", ctr + CUR.fetchone()[0], "comments in local database:", c.database()
 
 
 main()

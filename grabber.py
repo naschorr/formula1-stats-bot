@@ -180,7 +180,7 @@ def verboseMode():
 
     print " > Adding", lenSortCom, "comments to database:", c.database()
     addComments(sortCom)
-    print " > There are", ROWS, "comments in the database.", "\n"
+    print " > There are", ROWS, "comments in database:", c.database()
 
     print " > Printing", lenSortCom, "comments to terminal."
     if lenSortCom > 0:
