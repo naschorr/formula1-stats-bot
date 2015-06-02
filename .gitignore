@@ -1,6 +1,8 @@
 # Ignore credentials, as it contains sensitive data.
 credentials.py
 remote_credentials.py
+credentials.json
+remote_credentials.json
 
 # Ignore the pip-selfcheck, allegedly it's the result of 
 # something weird happening when you run pip in a VM?
@@ -12,7 +14,7 @@ pip-selfcheck.json
 #Ignore praw
 praw
 
-#Ignore  these directories
+#Ignore these directories
 bin/
 include/
 lib/
