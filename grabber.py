@@ -1,14 +1,17 @@
 import praw
+import json
 import time
 import psycopg2
 import sys
-import operator
 import comment
-import credentials as c  ## This is a separate file that holds the credentials for accessing the database
-            ## Rather than build a parser manually, it relys on python functions to
-            ## retrieve the data. Look at "example_credentials.py" to get it set up.
+from operator import methodcaller
+
+## JSON files
+reddit = "reddit.json"
+credentials = "credentials.json"
 
 ## Globals
+## ToDo - Get rid of the globals.
 WAIT_INTERVAL = 1
 MAX_WAIT_TIME = 60
 WAIT_TIME = 30
@@ -16,14 +19,21 @@ MIN_WAIT_TIME = 2  ## Minimum time between requests (according to reddit API)
 ROWS = 0
 
 ## Praw setup
-USER_AGENT = ("F1Bot 0.1")
+with open(reddit) as redditJson:
+    redditData = json.load(redditJson)
+
+USER_AGENT = (redditData["useragent"])
 REDDIT = praw.Reddit(USER_AGENT)
-SUBREDDIT = REDDIT.get_subreddit("formula1")
+SUBREDDIT = REDDIT.get_subreddit(redditData["subreddit"])
 
 ## Psycopg2 setup
+## ToDo - Less cursor reuse, they're lightweight enough to create on the fly.
+with open(credentials) as credentialsJson:
+    credData = json.load(credentialsJson)
+
 try:
-    DB = psycopg2.connect(database=c.database(), host=c.hostname(),
-                  user=c.username(), password=c.password())
+    DB = psycopg2.connect(database=credData["database"], host=credData["hostname"],
+                  user=credData["username"], password=credData["password"])
     CUR = DB.cursor()
 except:
     print "Unable to connect to database"
@@ -101,7 +111,7 @@ def removeDuplicates(comments):
 ## Mod  - Nothing
 ## ToDo - Return staus code?
 def sortComments(comments):
-    return sorted(comments, key=operator.methodcaller('decodeId'))
+    return sorted(comments, key=methodcaller('decodeId'))
 
 
 ## Desc - Adds comments to the databse
@@ -178,9 +188,9 @@ def verboseMode():
     lenSortCom = len(sortCom)
     print lenSortCom, "comments sorted."
 
-    print " > Adding", lenSortCom, "comments to database:", c.database()
+    print " > Adding", lenSortCom, "comments to database:", credData["database"]
     addComments(sortCom)
-    print " > There are", ROWS, "comments in database:", c.database()
+    print " > There are", ROWS, "comments in database:", credData["database"]
 
     print " > Printing", lenSortCom, "comments to terminal."
     if lenSortCom > 0:
@@ -202,7 +212,7 @@ def quietMode():
     com = sortComments(removeDuplicates(trimComments(getComments())))
     lenCom = len(com)
     ROWS += lenCom
-    print " > Adding", lenCom, "comments to:", c.database()
+    print " > Adding", lenCom, "comments to:", credData["database"]
     addComments(com)
 
     return com

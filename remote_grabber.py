@@ -1,14 +1,22 @@
+import json
 import psycopg2
-import remote_credentials as rc
-import credentials as c
 import sys
-import operator
 import comment
+from operator import methodcaller
+
+## JSON files
+credentials = "credentials.json"
+remoteCredentials = "remote_credentials.json"
 
 ## Psycopg2 remote setup
+## ToDo - Less cursor reuse, they're lightweight enough to create on the fly.
+with open(remoteCredentials) as remoteJson:
+    remoteData = json.load(remoteJson)
+
 try:
-    remoteDB = psycopg2.connect(database=rc.database(), host=rc.hostname(), port=rc.port(),
-                  user=rc.username(), password=rc.password())
+    remoteDB = psycopg2.connect(database=remoteData["database"], host=remoteData["hostname"],
+                        port=remoteData["port"], user=remoteData["username"], 
+                        password=remoteData["password"])
     remoteCUR = remoteDB.cursor()
 except:
     print "Unable to connect to remote database"
@@ -17,12 +25,16 @@ except:
 
 
 ## Psycopg2 local setup
+## ToDo - Less cursor reuse, they're lightweight enough to create on the fly.
+with open(credentials) as credentialsJson:
+    credData = json.load(credentialsJson)
+
 try:
-    DB = psycopg2.connect(database=c.database(), host=c.hostname(), user=c.username(), 
-            password=c.password())
+    DB = psycopg2.connect(database=credData["database"], host=credData["hostname"],
+                  user=credData["username"], password=credData["password"])
     CUR = DB.cursor()
 except:
-    print "Unable to connect to local database"
+    print "Unable to connect to database"
     print sys.exc_info()[1]
     sys.exit()
 
@@ -47,7 +59,7 @@ def getRemoteComments(chunkSize=25):
 ## Mod  - Nothing
 ## ToDo - Return staus code?
 def sortComments(comments):
-    return sorted(comments, key=operator.methodcaller('decodeId'))
+    return sorted(comments, key=methodcaller('decodeId'))
 
 ## Desc - Adds in the supplied comments to the local database.
 ## In   - (comments) list of comment objects
@@ -86,16 +98,16 @@ def main():
     ctr = 0
     while(ctr < remoteRows - chunkSize):
         comments = []
-        print " > Getting and sorting comments %s to %s from remote database:" %(ctr, ctr + chunkSize), rc.database()
+        print " > Getting and sorting comments %s to %s from remote database:" %(ctr, ctr + chunkSize), remoteData["database"]
         comments = sortComments(getRemoteComments(chunkSize))
-        print " > Adding comments to local database:", c.database()
+        print " > Adding comments to local database:", credData["database"]
         addComments(comments)
-        print " > Removing comments from remote database:", rc.database()
+        print " > Removing comments from remote database:", remoteData["database"]
         deleteRemoteComments(len(comments))
         ctr += chunkSize
     print " >", ctr, "comments successfully migrated."
     CUR.execute("SELECT COUNT(*) FROM f1_bot;")
-    print " > There are now", ctr + CUR.fetchone()[0], "comments in local database:", c.database()
+    print " > There are now", ctr + CUR.fetchone()[0], "comments in local database:", credData["database"]
 
 
 main()
