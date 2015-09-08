@@ -49,7 +49,7 @@ def printFlairData(flairs, size = 0, requested = []):
         for i in requested:
             for x in range(len(flairs)):
                 if i in flairs[x][0]:
-                    print("{:<20} {:<5} {:<12} {:<6} %".format(i, flairs[x][0][i], 
+                    print("{:<20} {:<5} {:<20} {:<6} %".format(i, flairs[x][0][i], 
                           flairs[x][2], round(float(flairs[x][0][i])/float(flairs[x][1])*100, 3)))
             print()
 
@@ -111,15 +111,12 @@ def main(args):
     with open(SCHEDULE) as scheduleJson:
         scheduleData = OrderedDict(sorted(json.load(scheduleJson).items(), key=lambda x:x[1]))
 
+    prev_race = 0
     for key, value in scheduleData.iteritems():
-        ## Builds a list of tuples of form (dict(flair : count), size of dataset, name of race)
+        delta.append(analyzeRange(prev_race, value["break"], flairs) + ("pre-" + value["name"],))
         delta.append(analyzeRange(value["break"], value["race"], flairs) + (value["name"],))
+        prev_race = value["race"]
 
-    # for i in flairs:
-    #     for x in range(len(delta)):
-    #         if i in delta[x][0]:
-    #             print("{:<20} {:<5} {:<12} {:<6} %".format(i, delta[x][0][i], delta[x][2], round(float(delta[x][0][i])/float(delta[x][1])*100, 3)))
-    #     print()
 
     printFlairData(delta, 0, flairs)
 
