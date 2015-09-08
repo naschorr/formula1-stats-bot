@@ -38,18 +38,21 @@ def sortFlairData(flairs):
 
 
 ## Size refers to size of dataset the flairs were taken from.
-def printFlairData(flairs, size = 0, requested = []):
+def printFlairData(flairs, requested = [], size = 0):
     size = float(size)
 
     if not requested:
-        [print("{:<25} {:<5} {:<5} %".format(flairs[x][0], flairs[x][1], 
-               round(((flairs[x][1]/size)*100), 3))) for x in range(len(flairs))]
+        for i in flairs:
+            for key, value in sorted(i[0].iteritems(), key=lambda i:i[1], reverse=True):
+                print("{:<25} {:<5} {:<20} {:<6} %".format(key, value, i[2], round(float(value)/float(i[1])*100, 3)))
+            if i[0]:
+                print()
 
     else:
         for i in requested:
             for x in range(len(flairs)):
                 if i in flairs[x][0]:
-                    print("{:<20} {:<5} {:<20} {:<6} %".format(i, flairs[x][0][i], 
+                    print("{:<25} {:<5} {:<20} {:<6} %".format(i, flairs[x][0][i], 
                           flairs[x][2], round(float(flairs[x][0][i])/float(flairs[x][1])*100, 3)))
             print()
 
@@ -105,7 +108,8 @@ def main(args):
 
     ## Replace with args
     ## Testing
-    flairs = ["Sebastian Vettel", "Kimi Rikknen", "Ferrari", "Lewis Hamilton", "Nico Rosberg", "Mercedes"]
+    flairs = []
+    #flairs = ["Sebastian Vettel", "Kimi Rikknen", "Ferrari", "Lewis Hamilton", "Nico Rosberg", "Mercedes"]
     delta = []
 
     with open(SCHEDULE) as scheduleJson:
@@ -117,8 +121,7 @@ def main(args):
         delta.append(analyzeRange(value["break"], value["race"], flairs) + (value["name"],))
         prev_race = value["race"]
 
-
-    printFlairData(delta, 0, flairs)
+    printFlairData(delta, flairs, 0)
 
 
 main(sys.argv)
