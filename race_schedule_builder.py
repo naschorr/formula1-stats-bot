@@ -1,3 +1,4 @@
+from collections import OrderedDict
 import json
 import sys
 import time
@@ -20,16 +21,14 @@ def printEventData(event):
 
 def main(args):
     with open(SCHEDULE) as scheduleJson:
-        scheduleData = json.load(scheduleJson)
-    print scheduleData
+        scheduleData = OrderedDict(sorted(json.load(scheduleJson).items(), key=lambda x:x[1]))
 
-    for i in range(1, len(scheduleData)+1):  ## Fix
-        index = str(i)
-        race = scheduleData[index][RACE]
+    for key, value in scheduleData.iteritems():
+        race = value[RACE]
         recess = race - (EVENT_LEN * 24 * 60 * 60) + 1
-        scheduleData[index][RECESS] = recess
+        value[RECESS] = recess
 
-        printEventData(scheduleData[index])
+        printEventData(value)
 
     with open(SCHEDULE, 'w') as output:
        json.dump(scheduleData, output)

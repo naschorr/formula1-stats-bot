@@ -11,11 +11,14 @@ pip-selfcheck.json
 # Ignore .pyc files
 *.pyc
 
-#Ignore praw
+# Ignore praw
 praw
 
-#Ignore these directories
+# Ignore these directories
 bin/
 include/
 lib/
 local/
+
+# Ignore backups
+*bkup.json

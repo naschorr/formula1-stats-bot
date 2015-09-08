@@ -38,19 +38,20 @@ def sortFlairData(flairs):
 
 
 ## Size refers to size of dataset the flairs were taken from.
-def printFlairData(flairs, size):
+def printFlairData(flairs, size = 0, requested = []):
     size = float(size)
 
-    if type(flairs) is dict:
+    if not requested:
         [print("{:<25} {:<5} {:<5} %".format(flairs[x][0], flairs[x][1], 
                round(((flairs[x][1]/size)*100), 3))) for x in range(len(flairs))]
 
-    elif type(flairs) is tuple:
-        ## implement this
-        return
-
     else:
-        print("Sorry, wrong type as argument.")
+        for i in requested:
+            for x in range(len(flairs)):
+                if i in flairs[x][0]:
+                    print("{:<20} {:<5} {:<12} {:<6} %".format(i, flairs[x][0][i], 
+                          flairs[x][2], round(float(flairs[x][0][i])/float(flairs[x][1])*100, 3)))
+            print()
 
 
 def filterFlairs(data, requested):
@@ -58,7 +59,7 @@ def filterFlairs(data, requested):
     return dict((x, data[x]) for x in output)
 
 
-def analyzeRange(start, stop, desiredFlairs=[]):
+def analyzeRange(start, stop, desiredFlairs = []):
     ## Performs one big database transaction (not meant for large ranges) ymmv
     flairs = {}
     size = 0
@@ -103,6 +104,7 @@ def analyzeAll(desiredFlairs=[]):
 def main(args):
 
     ## Replace with args
+    ## Testing
     flairs = ["Sebastian Vettel", "Kimi Rikknen", "Ferrari", "Lewis Hamilton", "Nico Rosberg", "Mercedes"]
     delta = []
 
@@ -113,11 +115,13 @@ def main(args):
         ## Builds a list of tuples of form (dict(flair : count), size of dataset, name of race)
         delta.append(analyzeRange(value["break"], value["race"], flairs) + (value["name"],))
 
-    for i in flairs:
-        for x in range(len(delta)):
-            if i in delta[x][0]:
-                print("{:<20} {:<5} {:<12} {:<6} %".format(i, delta[x][0][i], delta[x][2], round(float(delta[x][0][i])/float(delta[x][1])*100, 3)))
-        print()
+    # for i in flairs:
+    #     for x in range(len(delta)):
+    #         if i in delta[x][0]:
+    #             print("{:<20} {:<5} {:<12} {:<6} %".format(i, delta[x][0][i], delta[x][2], round(float(delta[x][0][i])/float(delta[x][1])*100, 3)))
+    #     print()
+
+    printFlairData(delta, 0, flairs)
 
 
 main(sys.argv)
