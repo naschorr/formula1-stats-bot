@@ -10,6 +10,8 @@ Start by activating your virtualenv (if you're using one), and then removing "ex
   ex: python grabber.py -v
   
   ex: python remote_grabber.py
+  
+  ex: python analyzer.py
 
 This project uses praw (2.1.21), a postgres (9.1.14) database, and psycopg2 (2.5.1) to interface with the database.
 
