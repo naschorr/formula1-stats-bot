@@ -33,7 +33,7 @@ This project uses praw (2.1.21), a postgres (9.1.14) database, and psycopg2 (2.5
 
 - Improve naming for everything.
 
-- Implement/Import an actual system argument system.
+- Implement/Import an actual argument system.
 
 ------
 
