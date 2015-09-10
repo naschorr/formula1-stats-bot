@@ -35,9 +35,6 @@ This project uses praw (2.1.21), a postgres (9.1.14) database, and psycopg2 (2.5
 
 - Implement/Import an actual system argument system.
 
-- Add scripts to improve data collection uptime?
-  - Raspberry Pi auto cycle network interface, then restart grabber.py?
-
 ------
 
 createtable f1_bot (
