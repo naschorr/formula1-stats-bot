@@ -19,8 +19,6 @@ This project uses praw (2.1.21), a postgres (9.1.14) database, and psycopg2 (2.5
 
 ####To do:
 
-- Build simple statistics suite to analyze collected data.
-
 - Improve function for the wait timer (currently linear, maybe something closer to x^-2?)
 
 - Add in wait timer override when pulling in a certain amount of comments?
