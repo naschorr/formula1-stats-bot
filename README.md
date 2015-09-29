@@ -10,6 +10,8 @@ Start by activating your virtualenv (if you're using one), and then removing "ex
   ex: python grabber.py -v
   
   ex: python remote_grabber.py
+  
+  ex: python analyzer.py
 
 This project uses praw (2.1.21), a postgres (9.1.14) database, and psycopg2 (2.5.1) to interface with the database.
 
@@ -18,10 +20,6 @@ This project uses praw (2.1.21), a postgres (9.1.14) database, and psycopg2 (2.5
 ####To do:
 
 - Build simple statistics suite to analyze collected data.
-  
-- Implement some sort of search algorithm to ensure no duplicate comments are added. (Possibly not necessary with base-36 converter and new sorting system.)
-  
-- Give functionality to parse through older comments.
 
 - Improve function for the wait timer (currently linear, maybe something closer to x^-2?)
 
@@ -29,7 +27,13 @@ This project uses praw (2.1.21), a postgres (9.1.14) database, and psycopg2 (2.5
 
 - Add table information to credentials.py.
 
-- Output table to a .csv file.
+- Output resulting tables to a .csv or .json file.
+
+- Build a graphical frontend (chart.js, d3.js?)
+
+- Improve naming for everything.
+
+- Implement/Import an actual argument system.
 
 ------
 
