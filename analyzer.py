@@ -3,6 +3,7 @@ from collections import OrderedDict
 import psycopg2
 import json
 import sys
+import time
 
 ## File setup
 CREDENTIALS = "credentials.json"
@@ -33,75 +34,71 @@ def countRows():
     return CUR.fetchone()[0]
 
 
-def sortFlairData(flairs):
+def sortFlairs(flairs):
     return sorted(flairs.items(), key=lambda x:x[1], reverse=True)
 
 
-## Size refers to size of dataset the flairs were taken from.
-def printFlairData(flairs, requested = [], size = 0):
-    size = float(size)
-
-    if not requested:
-        for i in flairs:
-            for key, value in sorted(i[0].iteritems(), key=lambda i:i[1], reverse=True):
-                print("{:<25} {:<5} {:<20} {:<6} %".format(key, value, i[2], round(float(value)/float(i[1])*100, 3)))
-            if i[0]:
-                print()
-
-    else:
-        for i in requested:
-            for x in range(len(flairs)):
-                if i in flairs[x][0]:
-                    print("{:<25} {:<5} {:<20} {:<6} %".format(i, flairs[x][0][i], 
-                          flairs[x][2], round(float(flairs[x][0][i])/float(flairs[x][1])*100, 3)))
-            print()
-
-
-def filterFlairs(data, requested):
-    output = list(set(requested).intersection(data))
-    return dict((x, data[x]) for x in output)
-
-
-def analyzeRange(start, stop, desiredFlairs = []):
-    ## Performs one big database transaction (not meant for large ranges) ymmv
-    flairs = {}
+## Gets the size of a given set of flairs.
+def getSize(flairs):
     size = 0
+    for key, value in flairs.iteritems():
+        size += value
+    return size
 
-    CUR.execute("SELECT time_created, flair FROM f1_bot WHERE time_created BETWEEN %s AND %s;", (start, stop))
-    for i in CUR:
-        if(i[1] not in flairs):
-            flairs[i[1]] = 1
-        else:
-            flairs[i[1]] = flairs[i[1]] + 1;
-        size += 1
 
-    if not desiredFlairs:
-        return flairs, size
+## Outputs the flair, the number of flairs, and the relative frequency of that flair to the terminal.
+def printFlairFreq(flairs):
+    size = float(getSize(flairs))
+
+    for i in sortFlairs(flairs):
+        print("{:<25} {:<7} {:<6} %".format(i[0], i[1], round(i[1]/size*100, 3)))
+
+
+## Builds/updates a dict based on the values provided by the input list. Acts as a tally
+def appendListToDict(dictOut, listIn):
+        for i in listIn:
+            this = i[0]
+            if(this not in dictOut):
+                dictOut[this] = 1
+            else:
+                dictOut[this] += 1
+        return dictOut
+
+
+## Grabs all flairs from db within given range, and puts them in a dict that corresponds to how many
+##  instances of that flair there are. Performs one big database transaction (not meant for large ranges)
+def getRange(start, stop, filterFlairs = []):
+    if(not filterFlairs):
+        CUR.execute("SELECT flair FROM f1_bot WHERE time_created BETWEEN %s and %s;", (start, stop))
     else:
-        return filterFlairs(flairs, desiredFlairs), size
+        CUR.execute("SELECT flair FROM f1_bot WHERE time_created BETWEEN %s and %s AND flair IN %s;", 
+                    (start, stop, tuple(filterFlairs)))
+
+    output = {}
+    return appendListToDict(output, CUR)
 
 
-def analyzeAll(desiredFlairs=[]):
-    ## Performs many smaller database transactions
+## Grabs all flairs in the db, and puts them in a dict that corresponds to how many instances of 
+##  that flair there are. Performs many smaller database transactions
+def getAll(filterFlairs = []):
     size = float(countRows())
     chunkSize = 25
     current = 0
-    flairs = {}
+    output = {}
 
-    while(current * chunkSize < size):
-        CUR.execute("SELECT time_created, flair FROM f1_bot ORDER BY post_id LIMIT %s OFFSET %s;", (chunkSize, chunkSize * current))
-        print(round(((current * chunkSize)/size)*100, 3), "%")  ## ToDo: Use stdout write buffer instead of spamming lines?
-        for i in CUR:
-            if(i[1] not in flairs):
-                flairs[i[1]] = 1
-            else:
-                flairs[i[1]] = flairs[i[1]] + 1;
-        current += 1;
-
-    if not desiredFlairs:
-        return flairs, size
+    if(not filterFlairs):
+        while(current * chunkSize < size):
+            CUR.execute("SELECT flair FROM f1_bot LIMIT %s OFFSET %s;", (current, current + chunkSize))
+            output = appendListToDict(output, CUR)
+            current += chunkSize
     else:
-        return filterFlairs(flairs, desiredFlairs), size
+        while(current * chunkSize < size):
+            CUR.execute("SELECT flair FROM f1_bot WHERE flair IN %s LIMIT %s OFFSET %s;", 
+                        (tuple(filterFlairs), current, current + chunkSize))
+            output = appendListToDict(output, CUR)
+            current += chunkSize
+
+    return output
 
 
 def main(args):
@@ -109,19 +106,39 @@ def main(args):
     ## Replace with args
     ## Testing
     flairs = []
-    #flairs = ["Sebastian Vettel", "Kimi Rikknen", "Ferrari", "Lewis Hamilton", "Nico Rosberg", "Mercedes"]
-    delta = []
+    flairs = ["Sebastian Vettel", "Kimi Rikknen", "Ferrari", "Lewis Hamilton", "Nico Rosberg", "Mercedes"]
 
     with open(SCHEDULE) as scheduleJson:
+        ## Replace with modified sortFlairs?
         scheduleData = OrderedDict(sorted(json.load(scheduleJson).items(), key=lambda x:x[1]))
 
-    prev_race = 0
-    for key, value in scheduleData.iteritems():
-        delta.append(analyzeRange(prev_race, value["break"], flairs) + ("pre-" + value["name"],))
-        delta.append(analyzeRange(value["break"], value["race"], flairs) + (value["name"],))
-        prev_race = value["race"]
+    ## Put this in its own function
+    prevRace = 0
+    counter = 1
+    seasonLength = len(scheduleData)
+    while(counter <= seasonLength):
+        value = scheduleData[str(counter)]
+        currTime = time.time()
+        prerace = value["break"]
+        race = value["race"]
+        if(prerace <= currTime or prevRace <= currTime):
+            print("PRE-" + value["name"].upper())
+            printFlairFreq(getRange(prevRace, prerace, flairs))
+            print()
+        else:
+            break
+        if(race <= currTime or prerace <= currTime):
+            print(value["name"].upper())
+            printFlairFreq(getRange(prerace, race, flairs))
+            print()
+        else:
+            break
+        counter += 1
+        prevRace = race
 
-    printFlairData(delta, flairs, 0)
 
+    printFlairFreq(getAll(flairs))
+
+    print("Done!")
 
 main(sys.argv)
