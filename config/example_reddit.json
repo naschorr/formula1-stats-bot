@@ -1,0 +1,9 @@
+{
+	"_comment"  : "Rename this file to reddit.json, and adjust the variables accordingly.",
+    "useragent" : "USERAGENT", 
+    "id"		: "CLIENT_ID",
+    "secret"	: "CLIENT_SECRET",
+    "subreddit" : "formula1",
+    "username"	: "USERNAME",
+    "password"	: "PASSWORD"
+}

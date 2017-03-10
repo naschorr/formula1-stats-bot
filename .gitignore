@@ -1,0 +1,35 @@
+# Ignore database credentials
+config/db.json
+config/remote_db.json
+config/reddit.json
+
+# Ignore the pip-selfcheck, allegedly it's the result of 
+# something weird happening when you run pip in a VM?
+pip-selfcheck.json
+
+# Ignore .pyc files
+*.pyc
+
+# Ignore praw
+praw
+
+# Ignore virtualenv directories
+bin/
+include/
+lib/
+local/
+
+Include/
+Lib/
+Scripts/
+tcl/
+
+# Ignore backups
+*bkup
+
+# Ignore gitattributes
+.gitattributes
+
+# Ignore sublime project files
+*.sublime-project
+*.sublime-workspace

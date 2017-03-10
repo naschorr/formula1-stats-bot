@@ -1,0 +1,8 @@
+{
+    "_comment"  : "Rename this file to db.json, and adjust the variables accordingly.",
+    "database"  : "DATABASE",
+    "table"		: "TABLE",
+    "hostname"  : "HOST",
+    "username"  : "USER",
+    "password"  : "PASSWORD"
+}

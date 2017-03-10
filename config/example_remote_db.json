@@ -1,0 +1,9 @@
+{
+    "_comment"  : "Rename this file to remote_db.json, and adjust the variables accordingly.",
+    "database"  : "DATABASE",
+    "table"		: "TABLE",
+    "hostname"  : "HOST",
+    "port"      : "PORT",
+    "username"  : "USER",
+    "password"  : "PASSWORD"
+}
