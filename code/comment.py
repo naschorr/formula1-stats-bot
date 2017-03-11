@@ -33,8 +33,8 @@ class Comment:
         self.id = CommentId(post_id)
         self.author = str(author)
         self.time = int(created_utc)
-        self.flair = str(flair_text).strip()
-        self.text = str(body).strip()
+        self.flair = str(flair_text.encode("UTF8")).strip()
+        self.text = str(body.encode("UTF8")).strip()
 
     def __repr__(self):
         raw = "{}: Id={}, Author={}, Time={}, Flair={}, BodyLen={}"

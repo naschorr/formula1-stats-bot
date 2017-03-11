@@ -1,7 +1,7 @@
 from __future__ import print_function
 
 import praw
-import psycopg2
+import psycopg2cffi as psycopg2
 import json
 import sys
 import os.path
@@ -10,7 +10,7 @@ from comment import Comment
 
 ## Globals
 CONFIG_FOLDER_NAME = "config"
-DB_CONFIG_NAME = "remote_db.json"
+DB_CONFIG_NAME = "db.json"
 REDDIT_CONFIG_NAME = "reddit.json"
 
 DB_PATH = os.path.sep.join(os.path.realpath(__file__).split(os.path.sep)[:-2] + [CONFIG_FOLDER_NAME, DB_CONFIG_NAME])
