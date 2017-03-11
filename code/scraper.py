@@ -1,16 +1,26 @@
 from __future__ import print_function
 
-import praw
-import psycopg2cffi as psycopg2
 import json
 import sys
-import os.path
+import os
+import click
+import praw
+
+if(os.name == "posix"):
+    ## https://mail.python.org/pipermail/pypy-dev/2013-May/011398.html
+    import psycopg2cffi as psycopg2
+elif(os.name == "nt"):
+    import psycopg2
+else:
+    ## No idea what os it is, just try psycopg2
+    import psycopg2
 
 from comment import Comment
 
 ## Globals
 CONFIG_FOLDER_NAME = "config"
 DB_CONFIG_NAME = "db.json"
+REMOTE_DB_CONFIG_NAME = "remote_db.json"
 REDDIT_CONFIG_NAME = "reddit.json"
 
 DB_PATH = os.path.sep.join(os.path.realpath(__file__).split(os.path.sep)[:-2] + [CONFIG_FOLDER_NAME, DB_CONFIG_NAME])
@@ -126,7 +136,14 @@ class Scraper:
                 callback(comment_obj)
 
 
-def main():
+@click.command()
+@click.option("--remote", "-r", is_flag=True, help="Denotes whether or not the scraper is accessing the database remotely (using {0} instead of {1})".format(REMOTE_DB_CONFIG_NAME, DB_CONFIG_NAME))
+def main(remote):
+    ## Handle args
+    if(remote):
+        global DB_PATH
+        DB_PATH = os.path.sep.join(os.path.realpath(__file__).split(os.path.sep)[:-2] + [CONFIG_FOLDER_NAME, REMOTE_DB_CONFIG_NAME])
+
     ## Init DB_Controller
     db_controller = DB_Controller(DB_PATH)
 
