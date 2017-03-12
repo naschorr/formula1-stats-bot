@@ -5,6 +5,9 @@ import sys
 import os
 import click
 import praw
+import requests
+
+from time import sleep
 
 if(os.name == "posix"):
     ## https://mail.python.org/pipermail/pypy-dev/2013-May/011398.html
@@ -22,6 +25,8 @@ CONFIG_FOLDER_NAME = "config"
 DB_CONFIG_NAME = "db.json"
 REMOTE_DB_CONFIG_NAME = "remote_db.json"
 REDDIT_CONFIG_NAME = "reddit.json"
+ATTEMPT_LIMIT = 10
+SLEEP_TIME = 10
 
 DB_PATH = os.path.sep.join(os.path.realpath(__file__).split(os.path.sep)[:-2] + [CONFIG_FOLDER_NAME, DB_CONFIG_NAME])
 REDDIT_PATH = os.path.sep.join(os.path.realpath(__file__).split(os.path.sep)[:-2] + [CONFIG_FOLDER_NAME, REDDIT_CONFIG_NAME])
@@ -37,10 +42,10 @@ class DB_Controller:
                                        user=self.db_cfg["username"],
                                        password=self.db_cfg["password"])
         except psycopg2.OperationalError as poe:
-            print("Unable to connect to database:", poe)
+            print("Unable to connect to database:", poe, file=sys.stderr)
             sys.exit()
         except:
-            print("Unhandled error when connecting to database", sys.exc_info()[1])
+            print("Unhandled error when connecting to database", sys.exc_info()[1], file=sys.stderr)
             sys.exit()
 
         self.table = self.db_cfg["table"]
@@ -66,10 +71,10 @@ class DB_Controller:
                                                         comment_obj.flair,
                                                         comment_obj.text))
             except psycopg2.IntegrityError as pie:
-                print("Primary Key integrity violation. Ignoring this comment.", pie)
+                print("Primary Key integrity violation. Ignoring this comment.", pie, file=sys.stderr)
                 self.db.rollback()
             except:
-                print("Unhandled error when inserting into db", sys.exc_info())
+                print("Unhandled error when inserting into db", sys.exc_info(), file=sys.stderr)
                 sys.exit()
             else:
 
@@ -77,7 +82,7 @@ class DB_Controller:
                 try:
                     self.db.commit()
                 except:
-                    print("Unhandled error when commiting changes to db", sys.exc_info())
+                    print("Unhandled error when commiting changes to db", sys.exc_info(), file=sys.stderr)
                     sys.exit()
                 else:
 
@@ -95,6 +100,10 @@ class DB_Controller:
 
 class Scraper:
     def __init__(self, db_controller, reddit_cfg_path):
+        ## Hard limit to attempt to stream comments (so the script doesn't
+        ##  just endlessly accomplish nothing)
+        self._attempts = 0
+
         ## Get the config data for the reddit instance
         with open(reddit_cfg_path) as reddit_json:
             self.reddit_cfg = json.load(reddit_json)
@@ -107,22 +116,39 @@ class Scraper:
                                       username=self.reddit_cfg["username"],
                                       password=self.reddit_cfg["password"])
         except:
-            print("Unhandled error when getting Reddit instance", sys.exc_info()[1])
+            print("Unhandled error when getting Reddit instance", sys.exc_info()[1], file=sys.stderr)
             sys.exit()
 
         ## Get Subreddit instance
         try:
             self.subreddit = self.reddit.subreddit(self.reddit_cfg["subreddit"])
         except:
-            print("Unhandled error when getting subreddit instance", sys.exc_info()[1])
+            print("Unhandled error when getting subreddit instance", sys.exc_info()[1], file=sys.stderr)
             sys.exit()
 
         ## Save the db_controller
         self.db = db_controller
 
         ## Start parsing the new comment stream
-        for comment in self.subreddit.stream.comments():
-            self.parse_comment(comment, self.db.store_comment)
+        self.stream_comments()
+
+
+    ## TODO: Make this less ugly
+    def stream_comments(self):
+        try:
+            for comment in self.subreddit.stream.comments():
+                self.parse_comment(comment, self.db.store_comment)
+                if(self._attempts > 0):
+                    self._attempts -= 1
+        except (requests.RequestException, Exception) as e:
+            print("Praw Request exception", e, file=sys.stderr)
+            if(self._attempts < ATTEMPT_LIMIT):
+                self._attempts += 1
+                sleep(SLEEP_TIME)
+                self.stream_comments()
+            else:
+                print("Too many errors, quitting", e, file=sys.stderr)
+                sys.exit()
 
 
     def parse_comment(self, praw_comment, callback):
