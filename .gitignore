@@ -33,3 +33,6 @@ tcl/
 # Ignore sublime project files
 *.sublime-project
 *.sublime-workspace
+
+# Ignore error logs
+*err.log
