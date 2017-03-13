@@ -13,7 +13,7 @@ pip-selfcheck.json
 # Ignore praw
 praw
 
-# Ignore virtualenv directories
+# Ignore these directories
 bin/
 include/
 lib/
@@ -36,3 +36,6 @@ tcl/
 
 # Ignore error logs
 *err.log
+
+# Ignore backups
+*bkup.json
