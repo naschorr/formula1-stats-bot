@@ -15,7 +15,6 @@ function postgres_started {
 SLEEP_TIME=5
 
 until postgres_started; do
-	echo "$(POSTGRES_STATUS)"
 	echo "Postgres not currently running, trying again in $SLEEP_TIME."
 	sleep $SLEEP_TIME
 done
