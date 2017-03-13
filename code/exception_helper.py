@@ -2,8 +2,14 @@ from __future__ import print_function
 
 import sys
 import time
-import threading
 import traceback
+
+
+class Thread_Tracker:
+    def __init__(self, thread, event):
+        self.thread = thread
+        self.event = event
+
 
 ## TODO: lots of try-except blocks
 class Exception_Helper:
@@ -33,6 +39,7 @@ class Exception_Helper:
 
     def print(self, exception, *args, **kwargs):
         output = ""
+        exit = False
 
         ## Log the current time if necessary
         if(self.log_time):
@@ -46,11 +53,18 @@ class Exception_Helper:
         if(not exception):
             exception = ""
 
-        print(output, exception, *args, **kwargs)
-
+        ## Determine if the exit kwarg is supplied
         if("exit" in kwargs):
             if(kwargs["exit"] == True):
-                self.exit()
+                exit = True
+                del kwargs["exit"]
+
+        ## Actual output
+        print(output, exception, *args, **kwargs)
+
+        ## Exit if necessary
+        if(exit):
+            self.exit()
 
 
     def print_stdout(self, exception, *args, **kwargs):
@@ -69,13 +83,9 @@ class Exception_Helper:
         return time.strftime(self.time_format)
 
 
+    ## TODO: better word than 'robust'
+    ## TODO: stick this in separate thread? 
     def make_robust(self, non_robust_function, allowed_exceptions, allowed_exception_callback, exception_callback, *non_robust_args):
-        thread = threading.Thread(target=self._init_make_robust, args=(non_robust_function, allowed_exceptions, allowed_exception_callback, exception_callback) + non_robust_args)
-        thread.start()
-        return thread
-
-
-    def _init_make_robust(self, non_robust_function, allowed_exceptions, allowed_exception_callback, exception_callback, *non_robust_args):
         last_exception_time = 0
         attempts = 0
         continue_loop = True
@@ -83,6 +93,9 @@ class Exception_Helper:
             try:
                 non_robust_function(*non_robust_args)
             except (allowed_exceptions) as e:
+                ## Print out the exception that just occurred
+                self.print(e, "Allowed exception just occured in make_robust")
+
                 ## Send exception to the callback
                 allowed_exception_callback(e)
 
@@ -96,5 +109,11 @@ class Exception_Helper:
                     attempts += 1
                 last_exception_time = time.time()
             except Exception as e:
+                ## Print out the exception that just occurred
+                self.print(e, "Unexpected error just occured in make_robust")
+
+                ## Send exception to the callback
                 exception_callback(e)
+
+                ## End the loop
                 continue_loop = False

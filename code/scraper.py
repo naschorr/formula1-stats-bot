@@ -56,7 +56,7 @@ class Scraper:
         self.db = db_controller
 
         ## Start parsing the new comment stream
-        self.exception_helper.make_robust(self.stream_comments, [requests.RequestException, Exception], self.exception_helper.print_stdout, self.exception_helper.print_stderr)
+        self.exception_helper.make_robust(self.stream_comments, (requests.RequestException, Exception), self.exception_helper.print_stderr, self.exception_helper.print_stderr)
 
 
     def stream_comments(self):
