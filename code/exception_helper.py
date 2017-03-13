@@ -3,6 +3,7 @@ from __future__ import print_function
 import sys
 import time
 import threading
+import traceback
 
 ## TODO: lots of try-except blocks
 class Exception_Helper:
@@ -69,7 +70,7 @@ class Exception_Helper:
 
 
     def make_robust(self, non_robust_function, allowed_exceptions, allowed_exception_callback, exception_callback, *non_robust_args):
-        thread = threading.Thread(target=self._init_make_robust, args=(non_robust_function, allowed_exceptions, allowed_exception_callback, exception_callback, *non_robust_args))
+        thread = threading.Thread(target=self._init_make_robust, args=(non_robust_function, allowed_exceptions, allowed_exception_callback, exception_callback) + non_robust_args)
         thread.start()
         return thread
 
