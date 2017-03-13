@@ -9,6 +9,7 @@ import requests
 
 from time import sleep
 
+from exception_helper import Exception_Helper
 from comment import Comment
 from db_controller import DB_Controller
 
@@ -17,8 +18,6 @@ CONFIG_FOLDER_NAME = "config"
 DB_CONFIG_NAME = "db.json"
 REMOTE_DB_CONFIG_NAME = "remote_db.json"
 REDDIT_CONFIG_NAME = "reddit.json"
-ATTEMPT_LIMIT = 10
-SLEEP_TIME = 10
 
 DB_PATH = os.path.sep.join(os.path.realpath(__file__).split(os.path.sep)[:-2] + [CONFIG_FOLDER_NAME, DB_CONFIG_NAME])
 REDDIT_PATH = os.path.sep.join(os.path.realpath(__file__).split(os.path.sep)[:-2] + [CONFIG_FOLDER_NAME, REDDIT_CONFIG_NAME])
@@ -26,6 +25,9 @@ REDDIT_PATH = os.path.sep.join(os.path.realpath(__file__).split(os.path.sep)[:-2
 
 class Scraper:
     def __init__(self, db_controller, reddit_cfg_path):
+        ## Init the exception helper
+        self.exception_helper = Exception_Helper(log_time=True, std_stream=sys.stderr)
+
         ## Hard limit to attempt to stream comments (so the script doesn't
         ##  just endlessly accomplish nothing)
         self._attempts = 0
@@ -41,40 +43,25 @@ class Scraper:
                                       user_agent=self.reddit_cfg["useragent"],
                                       username=self.reddit_cfg["username"],
                                       password=self.reddit_cfg["password"])
-        except:
-            print("Unhandled error when getting Reddit instance", sys.exc_info()[1], file=sys.stderr)
-            sys.exit()
+        except Exception as e:
+            self.exception_helper.print(e, "Unexpected error when getting Reddit instance.\n", exit=True)
 
         ## Get Subreddit instance
         try:
             self.subreddit = self.reddit.subreddit(self.reddit_cfg["subreddit"])
-        except:
-            print("Unhandled error when getting subreddit instance", sys.exc_info()[1], file=sys.stderr)
-            sys.exit()
+        except Exception as e:
+            self.exception_helper.print(e, "Unexpected error when getting subreddit instance.\n", exit=True)
 
         ## Save the db_controller
         self.db = db_controller
 
         ## Start parsing the new comment stream
-        self.stream_comments()
+        self.exception_helper.make_robust(self.stream_comments, [requests.RequestException, Exception], self.exception_helper.print_stdout, self.exception_helper.print_stderr)
 
 
-    ## TODO: Make this less ugly
     def stream_comments(self):
-        try:
-            for comment in self.subreddit.stream.comments():
-                self.parse_comment(comment, self.db.store_comment)
-                if(self._attempts > 0):
-                    self._attempts -= 1
-        except (requests.RequestException, Exception) as e:
-            print("Praw Request exception", e, file=sys.stderr)
-            if(self._attempts < ATTEMPT_LIMIT):
-                self._attempts += 1
-                sleep(SLEEP_TIME)
-                self.stream_comments()
-            else:
-                print("Too many errors, quitting", e, file=sys.stderr)
-                sys.exit()
+        for comment in self.subreddit.stream.comments():
+            self.parse_comment(comment, self.db.store_comment)
 
 
     def parse_comment(self, praw_comment, callback):

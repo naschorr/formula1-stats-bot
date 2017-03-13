@@ -13,26 +13,33 @@ else:
     ## No idea what os it is, just try psycopg2
     import psycopg2
 
+from exception_helper import Exception_Helper
+
 
 class DB_Controller:
     def __init__(self, db_cfg_path):
+        ## Init the exception helper
+        self.exception_helper = Exception_Helper(log_time=True, std_stream=sys.stderr)
+
+        ## Get config data for the database
         with open(db_cfg_path) as db_json:
             self.db_cfg = json.load(db_json)
 
+        ## Open a connection to the database
         try:
             self.db = psycopg2.connect(database=self.db_cfg["database"],
                                        host=self.db_cfg["hostname"],
                                        user=self.db_cfg["username"],
                                        password=self.db_cfg["password"])
-        except psycopg2.OperationalError as poe:
-            print("Unable to connect to database:", poe, file=sys.stderr)
-            sys.exit()
-        except:
-            print("Unhandled error when connecting to database", sys.exc_info()[1], file=sys.stderr)
-            sys.exit()
+        except psycopg2.OperationalError as e:
+            self.exception_helper.print(e, "Unable to connect to the database.\n", exit=True)
+        except Exception as e:
+            self.exception_helper.print(e, "Unexpected error when trying to connect to the database.\n", exit=True)
 
+        ## Get the table that'll be worked with
         self.table = self.db_cfg["table"]
 
+        ## Display row count on startup
         print("Currently {0} rows in table {1}.".format(self.count_rows(), self.table))
 
 
@@ -53,20 +60,18 @@ class DB_Controller:
                                                         comment_obj.time,
                                                         comment_obj.flair,
                                                         comment_obj.text))
-            except psycopg2.IntegrityError as pie:
-                print("Primary Key integrity violation. Ignoring this comment.", pie, file=sys.stderr)
+            except psycopg2.IntegrityError as e:
+                self.exception_helper.print(e, "Primary key integrity error.\n")
                 self.db.rollback()
-            except:
-                print("Unhandled error when inserting into db", sys.exc_info(), file=sys.stderr)
-                sys.exit()
+            except Exception as e:
+                self.exception_helper.print(e, "Unexpected error when storing comment into the database.\n", exit=True)
             else:
 
                 ## Commit changes to the db
                 try:
                     self.db.commit()
-                except:
-                    print("Unhandled error when commiting changes to db", sys.exc_info(), file=sys.stderr)
-                    sys.exit()
+                except Exception as e:
+                    self.exception_helper.print(e, "Unexpected error when committing changes to the database.\n", exit=True)
                 else:
 
                     ## Output the successfully added comment
@@ -77,5 +82,5 @@ class DB_Controller:
         try:
             comment_obj.print_all()
             sys.stdout.flush()
-        except UnicodeEncodeError as uee:
-            print("Error encoding a character", uee, "\nSkipping...")
+        except UnicodeEncodeError as e:
+            self.exception_helper.print(e, "Error rendering this comment's unicode. Skipping...\n")
