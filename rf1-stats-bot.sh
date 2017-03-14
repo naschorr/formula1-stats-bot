@@ -9,7 +9,6 @@ POSTGRES_VERSION="9.1"
 SLEEP_TIME=5
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"	# http://stackoverflow.com/a/246128
 TEMP_DIR=tmp
-mkdir -p $TEMP_DIR/
 ERR_LOG=$DIR/$TEMP_DIR/err.log
 OUT_LOG=$DIR/$TEMP_DIR/out.log
 PID_FILE=$DIR/$TEMP_DIR/$NAME.pid
@@ -28,14 +27,11 @@ function get_pid () {
 	# If file exists and has a size > 0
 	if [ -s "$PID_FILE" ]; then
 		echo "$(eval cat $PID_FILE)"
-	else
-		return 0
 	fi
 }
 
 function is_running () {
 	pid=$(get_pid)
-
 	if [[ ${pid} -gt 0 ]]; then
 		return 0
 	else
@@ -48,6 +44,9 @@ until postgres_started; do
 	sleep $SLEEP_TIME
 done
 
+# Make sure the temp dir exists
+mkdir -p $TEMP_DIR
+
 # Activate the virtualenv
 source $DIR/bin/activate
 
@@ -58,16 +57,15 @@ pid=$(get_pid)
 case "$1" in
 	# TODO: background mode?
 	-q|--quiet)
-		if [ is_running ]; then
-			echo "$name is already running" >$ERR_LOG
+		if is_running; then
 			exit 1
 		fi
 		python $DIR/code/scraper.py >/dev/null 2>$ERR_LOG & echo $! > $PID_FILE
 		;;
 
 	""|--start)
-		if [ is_running ]; then
-			echo "$name is already running" 2> >(tee $ERR_LOG)
+                if is_running; then
+			echo "$NAME is already running with PID: $pid" 2> >(tee $ERR_LOG)
 			exit 1
 		fi
 		echo "Starting $NAME normally (stderr -> stdout and $ERR_LOG)"
@@ -77,24 +75,24 @@ case "$1" in
 	--stop)
 		echo "Stopping $NAME"
 		if [[ ${pid} -gt 0 ]]; then
-			kill $pid
+			kill $pid 2>$ERR_LOG
 		fi
 
 		## Check if the scraper is really dead
-		kill -0 "$pid" > /dev/null 2>&1
+		kill -0 "$pid" >/dev/null 2>&1
 		if [[ $? -ne 0 ]]; then
-			kill -9 $pid
-		else
-			exit 0
+			echo "$NAME still not dead, killing with -9"
+			kill -9 $pid 2>$ERR_LOG
 		fi
 
 		## Final sanity check and exit
-		kill -0 "$pid" > /dev/null 2>&1
+		kill -0 "$pid" >/dev/null 2>&1
 		if [[ $? -ne 0 ]]; then
-			exit 0
-		else
+			echo "$NAME failed to stop"
 			exit 1
 		fi
+
+		exit 0
 		;;
 
 	--pid)
