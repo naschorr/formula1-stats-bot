@@ -33,26 +33,49 @@ function get_pid () {
 	fi
 }
 
+function is_running () {
+	pid=$(get_pid)
+
+	if [[ ${pid} -gt 0 ]]; then
+		return 0
+	else
+		return 1
+	fi
+}
+
 until postgres_started; do
 	echo "Postgres not currently running, trying again in $SLEEP_TIME."
 	sleep $SLEEP_TIME
 done
 
+# Activate the virtualenv
 source $DIR/bin/activate
+
+# Attempt to get the pid from the pidfile
+pid=$(get_pid)
+
+# Handle the arguments
 case "$1" in
 	# TODO: background mode?
 	-q|--quiet)
+		if [ is_running ]; then
+			echo "$name is already running" >$ERR_LOG
+			exit 1
+		fi
 		python $DIR/code/scraper.py >/dev/null 2>$ERR_LOG & echo $! > $PID_FILE
 		;;
 
 	""|--start)
+		if [ is_running ]; then
+			echo "$name is already running" 2> >(tee $ERR_LOG)
+			exit 1
+		fi
 		echo "Starting $NAME normally (stderr -> stdout and $ERR_LOG)"
 		python $DIR/code/scraper.py 2> >(tee $ERR_LOG) & echo $! > $PID_FILE
 		;;
 
 	--stop)
 		echo "Stopping $NAME"
-		pid=$(get_pid)
 		if [[ ${pid} -gt 0 ]]; then
 			kill $pid
 		fi
@@ -67,20 +90,19 @@ case "$1" in
 
 		## Final sanity check and exit
 		kill -0 "$pid" > /dev/null 2>&1
-                if [[ $? -ne 0 ]]; then
-                        exit 0
-                else
-                        exit 1
-                fi
+		if [[ $? -ne 0 ]]; then
+			exit 0
+		else
+			exit 1
+		fi
 		;;
 
 	--pid)
-		pid=$(get_pid)
 		if [[ ${pid} -gt 0 ]]; then
-                        echo "$NAME has PID: $pid"
+			echo "$NAME has PID: $pid"
 		else
 			echo "$NAME doesn't have a PID"
-                fi
+		fi
 		exit 0
 		;;
 
@@ -94,7 +116,11 @@ esac
 # fg just moves them back into the foreground, so that the terminal isn't getting swamped
 # by their stdout and stderr.
 fg >/dev/null
+
+# Empty the pid file
 > $PID_FILE
+
+# Deactivate the virtualenv
 deactivate
 
 exit 0
