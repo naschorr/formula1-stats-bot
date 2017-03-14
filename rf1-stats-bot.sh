@@ -67,7 +67,7 @@ case "$1" in
 
 		## Final sanity check and exit
 		kill -0 "$pid" > /dev/null 2>&1
-                if [[ $? -eq 0 ]]; then
+                if [[ $? -ne 0 ]]; then
                         exit 0
                 else
                         exit 1

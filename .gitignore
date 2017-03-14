@@ -42,4 +42,4 @@ tcl/
 *bkup.json
 
 # Ignore my WIP daemon
-rf1-stats-bot
+service-rf1-stats-bot
