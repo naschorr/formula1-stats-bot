@@ -18,6 +18,7 @@ bin/
 include/
 lib/
 local/
+tmp/
 
 Include/
 Lib/
@@ -39,3 +40,6 @@ tcl/
 
 # Ignore backups
 *bkup.json
+
+# Ignore my WIP daemon
+rf1-stats-bot
