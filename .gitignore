@@ -3,6 +3,9 @@ config/db.json
 config/remote_db.json
 config/reddit.json
 
+# Ignore raw flair data
+config/flair_table.html
+
 # Ignore the pip-selfcheck, allegedly it's the result of 
 # something weird happening when you run pip in a VM?
 pip-selfcheck.json
