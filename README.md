@@ -38,11 +38,11 @@ This project uses praw (2.1.21), a postgres (9.1.14) database, and psycopg2 (2.5
 ------
 
 ```sql
-createtable f1_bot (
+createtable comments (
   post_id varchar(15) PRIMARY KEY,
   author varchar(20) NOT NULL,
   time_created integer NOT NULL,
-  flair varchar(25) NOT NULL,
+  flair text NOT NULL,
   body text
   );
 ```
