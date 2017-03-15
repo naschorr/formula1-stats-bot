@@ -1,5 +1,6 @@
 import os
 import json
+import click
 from html.parser import HTMLParser
 
 ## Literals
@@ -50,15 +51,31 @@ def read_flair_table(flair_table_path, callback):
         callback(line)
 
 
-def main():
+def save_flair_json(flair_json_path, flairs, overwrite=False, **kwargs):
+    if(os.path.isfile(flair_json_path) and not overwrite):
+        raise RuntimeError("Can't overwrite {0} without the [--overwrite|-o] flag set.".format(flair_json_path))
+        return
+
+    with open(flair_json_path, "w") as flair_file:
+        json.dump({FLAIR: flairs}, flair_file, **kwargs)
+
+
+@click.command()
+@click.option("--overwrite", "-o", is_flag=True, help="Overwrites any existing files when outputting {0}".format(FLAIR_FILE))
+def main(overwrite):
     parser = FlairTableParser()
     read_flair_table(FLAIR_TABLE_PATH, parser.feed)
+    flairs = sorted(parser.flairs)
 
-    with open(FLAIR_FILE_PATH, "w") as flair_file:
-        json.dump({FLAIR: sorted(list(parser.flairs))}, flair_file, indent=4, ensure_ascii=False)
-
-    print(FLAIR_FILE, "output:")
-    print(json.dumps({FLAIR: sorted(list(parser.flairs))}, indent=4, ensure_ascii=False))
+    try:
+        json_dumps_kwargs = {"indent": 4, "ensure_ascii": False}
+        save_flair_json(FLAIR_FILE_PATH, flairs, overwrite, **json_dumps_kwargs)
+    except Exception as e:
+        print("Exception while saving {0} to {1}:\n".format(FLAIR_FILE, FLAIR_FILE_PATH), e)
+        return
+    else:
+        print(FLAIR_FILE, "output:")
+        print(json.dumps({FLAIR: flairs}, **json_dumps_kwargs))
 
 
 if __name__ == '__main__':
