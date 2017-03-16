@@ -1,5 +1,6 @@
 from __future__ import print_function
 
+
 class CommentId:
     def __init__(self, comment_id):
         self.id = comment_id
@@ -25,9 +26,6 @@ class CommentId:
 
 
 class Comment:
-    """
-        Simple structure to hold relevant comment data
-    """
     ## TODO: Better input sanitization
     def __init__(self, post_id, author, created_utc, flair_text, body):
         self.id = CommentId(post_id)

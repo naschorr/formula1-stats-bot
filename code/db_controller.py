@@ -1,5 +1,8 @@
 from __future__ import print_function
 
+from utilities import Utilities
+from exception_helper import ExceptionHelper
+
 import json
 import sys
 import os
@@ -13,17 +16,26 @@ else:
     ## No idea what os it is, just try psycopg2
     import psycopg2
 
-from exception_helper import Exception_Helper
-
 
 class DB_Controller:
-    def __init__(self, db_cfg_path):
+    ## Globals
+    DB_CFG_NAME = "db.json"
+    REMOTE_DB_CFG_NAME = "remote_db.json"
+    DB_CFG_PATH = Utilities.build_path_from_config(DB_CFG_NAME)
+
+    def __init__(self, **kwargs):
+        static = DB_Controller
+
+        ## Handle the args
+        self.remote = kwargs.get("remote", False)
+
         ## Init the exception helper
-        self.exception_helper = Exception_Helper(log_time=True, std_stream=sys.stderr)
+        self.exception_helper = ExceptionHelper(log_time=True, std_stream=sys.stderr)
 
         ## Get config data for the database
-        with open(db_cfg_path) as db_json:
-            self.db_cfg = json.load(db_json)
+        if(self.remote):
+            static.DB_CFG_PATH = Utilities.build_path_from_config(static.REMOTE_DB_CFG_NAME)
+        self.db_cfg = Utilities.load_json(static.DB_CFG_PATH)
 
         ## Open a connection to the database
         try:

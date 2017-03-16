@@ -1,15 +1,9 @@
+from utilities import Utilities
+
 import os
 import json
 import click
 from html.parser import HTMLParser
-
-## Literals
-FLAIR = "flair"
-
-## Globals
-CONFIG_FOLDER_NAME = "config"
-FLAIR_TABLE_NAME = "flair_table.html"
-FLAIR_FILE = "flairs.json"
 
 
 class FlairTableParser(HTMLParser):
@@ -49,6 +43,13 @@ class FlairTableParser(HTMLParser):
 
 
 class FlairScraper:
+    ## Literals
+    FLAIRS = "flairs"
+
+    ## Globals
+    FLAIR_TABLE_NAME = "flair_table.html"
+    FLAIR_JSON_NAME = "flairs.json"
+
     ## The flair_table.html is a prettified html file. (Prettifying not required?)
     ## It's made by hitting the 'edit' flair button, and then right-clicking 
     ## 'Inspect Source' on the 'select flair' bar. In the elements panel the next
@@ -57,19 +58,19 @@ class FlairScraper:
     ## into an empty html document in the text editor. The html is then 
     ## prettified using the 'HTML/CSS/JS Prettify' package for Sublime Text (3?)
     ## and saved.
-    FLAIR_TABLE_PATH = os.path.sep.join(os.path.realpath(__file__).split(os.path.sep)[:-2] + [CONFIG_FOLDER_NAME, FLAIR_TABLE_NAME])
-    FLAIR_JSON_PATH = os.path.sep.join(os.path.realpath(__file__).split(os.path.sep)[:-2] + [CONFIG_FOLDER_NAME, FLAIR_FILE])
+    FLAIR_TABLE_PATH = Utilities.build_path_from_config(FLAIR_TABLE_NAME)
+    FLAIR_JSON_PATH = Utilities.build_path_from_config(FLAIR_JSON_NAME)
 
     def __init__(self, **kwargs):
         ## Alias FlairScraper into 'static'. Just a bit less typing
-        static = FlairScraper
+        self.static = FlairScraper
 
         ## Handle the args
         self.overwrite = kwargs.get("overwrite")
 
         ## Init the parser and start reading data into it
         parser = FlairTableParser()
-        self.read_flair_table(static.FLAIR_TABLE_PATH, parser.feed)
+        self.read_flair_table(self.static.FLAIR_TABLE_PATH, parser.feed)
         
         ## Get a sorted list of the flairs
         self.flairs = sorted(parser.flairs)
@@ -77,14 +78,14 @@ class FlairScraper:
         ## Try to save the flairs in a json file
         json_dumps_kwargs = {"indent": 4, "ensure_ascii": False}
         try:
-            self.save_flair_json(static.FLAIR_JSON_PATH, self.overwrite, **json_dumps_kwargs)
+            self.save_flair_json(self.static.FLAIR_JSON_PATH, self.overwrite, **json_dumps_kwargs)
         except Exception as e:
-            print("Exception while saving {0} to {1}:\n".format(FLAIR_FILE, static.FLAIR_JSON_PATH), e)
+            print("Exception while saving {0} to {1}:\n".format(FlairScraper.FLAIR_JSON_NAME, self.static.FLAIR_JSON_PATH), e)
             return
         else:
             ## If the save was successful, print the encoded json
-            print(FLAIR_FILE, "output:")
-            print(json.dumps({FLAIR: self.flairs}, **json_dumps_kwargs))
+            print(FlairScraper.FLAIR_JSON_NAME, "output:")
+            print(json.dumps({self.static.FLAIRS: self.flairs}, **json_dumps_kwargs))
 
     ## Methods
 
@@ -99,11 +100,11 @@ class FlairScraper:
             return
 
         with open(flair_json_path, "w") as flair_file:
-            json.dump({FLAIR: self.flairs}, flair_file, **kwargs)
+            json.dump({self.static.FLAIRS: self.flairs}, flair_file, **kwargs)
 
 
 @click.command()
-@click.option("--overwrite", "-o", is_flag=True, help="Overwrites any existing files when outputting {0}".format(FLAIR_FILE))
+@click.option("--overwrite", "-o", is_flag=True, help="Overwrites any existing files when outputting {0}".format(FlairScraper.FLAIR_JSON_NAME))
 def main(overwrite):
     ## Init the flair scraper
     FlairScraper(overwrite=overwrite)

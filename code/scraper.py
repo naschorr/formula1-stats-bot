@@ -1,5 +1,10 @@
 from __future__ import print_function
 
+from utilities import Utilities
+from exception_helper import ExceptionHelper
+from comment import Comment
+from db_controller import DB_Controller
+
 import json
 import sys
 import os
@@ -9,32 +14,24 @@ import requests
 
 from time import sleep
 
-from exception_helper import Exception_Helper
-from comment import Comment
-from db_controller import DB_Controller
-
-## Globals
-CONFIG_FOLDER_NAME = "config"
-DB_CONFIG_NAME = "db.json"
-REMOTE_DB_CONFIG_NAME = "remote_db.json"
-REDDIT_CONFIG_NAME = "reddit.json"
-
-DB_PATH = os.path.sep.join(os.path.realpath(__file__).split(os.path.sep)[:-2] + [CONFIG_FOLDER_NAME, DB_CONFIG_NAME])
-REDDIT_PATH = os.path.sep.join(os.path.realpath(__file__).split(os.path.sep)[:-2] + [CONFIG_FOLDER_NAME, REDDIT_CONFIG_NAME])
-
 
 class Scraper:
-    def __init__(self, db_controller, reddit_cfg_path):
+    ## Globals
+    REDDIT_CFG_NAME = "reddit.json"
+    REDDIT_CFG_PATH = Utilities.build_path_from_config(REDDIT_CFG_NAME)
+
+    def __init__(self, db_controller):
+        static = Scraper
+
         ## Init the exception helper
-        self.exception_helper = Exception_Helper(log_time=True, std_stream=sys.stderr)
+        self.exception_helper = ExceptionHelper(log_time=True, std_stream=sys.stderr)
 
         ## Hard limit to attempt to stream comments (so the script doesn't
         ##  just endlessly accomplish nothing)
         self._attempts = 0
 
         ## Get the config data for the reddit instance
-        with open(reddit_cfg_path) as reddit_json:
-            self.reddit_cfg = json.load(reddit_json)
+        self.reddit_cfg = Utilities.load_json(static.REDDIT_CFG_PATH)
 
         ## Get Reddit instance
         try:
@@ -76,18 +73,14 @@ class Scraper:
 
 
 @click.command()
-@click.option("--remote", "-r", is_flag=True, help="Denotes whether or not the scraper is accessing the database remotely (using {0} instead of {1})".format(REMOTE_DB_CONFIG_NAME, DB_CONFIG_NAME))
+@click.option("--remote", "-r", is_flag=True,
+              help="Denotes whether or not the scraper is accessing the database remotely (using {0} instead of {1})".format(DB_Controller.REMOTE_DB_CFG_NAME, DB_Controller.DB_CFG_NAME))
 def main(remote):
-    ## Handle args
-    if(remote):
-        global DB_PATH
-        DB_PATH = os.path.sep.join(os.path.realpath(__file__).split(os.path.sep)[:-2] + [CONFIG_FOLDER_NAME, REMOTE_DB_CONFIG_NAME])
-
     ## Init DB_Controller
-    db_controller = DB_Controller(DB_PATH)
+    db_controller = DB_Controller(remote=remote)
 
     ## Init Scraper
-    scraper = Scraper(db_controller, REDDIT_PATH)
+    scraper = Scraper(db_controller)
 
 
 if __name__ == '__main__':

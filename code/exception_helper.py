@@ -12,7 +12,7 @@ class Thread_Tracker:
 
 
 ## TODO: lots of try-except blocks
-class Exception_Helper:
+class ExceptionHelper:
     ## Literals
     LOG_TIME = "log_time"
     STD_STREAM = "std_stream"
@@ -25,16 +25,12 @@ class Exception_Helper:
     SLEEP_TIME = 10
 
     def __init__(self, **kwargs):
-        def getKwarg(kwarg, default=None):
-            if(kwarg in kwargs):
-                return kwargs[kwarg]
-            else:
-                return default
+        self.static = ExceptionHelper
 
-        self.log_time = getKwarg(Exception_Helper.LOG_TIME)
-        self.std_stream = getKwarg(Exception_Helper.STD_STREAM)
-        self.time_format = getKwarg(Exception_Helper.TIME_FORMAT, 
-                                    Exception_Helper.DEFAULT_TIME_FORMAT)
+        self.log_time = kwargs.get(self.static.LOG_TIME)
+        self.std_stream = kwargs.get(self.static.STD_STREAM)
+        self.time_format = kwargs.get(self.static.TIME_FORMAT,
+                                      self.static.DEFAULT_TIME_FORMAT)
 
 
     def print(self, exception, *args, **kwargs):
@@ -89,7 +85,7 @@ class Exception_Helper:
         last_exception_time = 0
         attempts = 0
         continue_loop = True
-        while(continue_loop and attempts < Exception_Helper.ATTEMPT_LIMIT):
+        while(continue_loop and attempts < self.static.ATTEMPT_LIMIT):
             try:
                 non_robust_function(*non_robust_args)
             except (allowed_exceptions) as e:
@@ -103,7 +99,7 @@ class Exception_Helper:
                 ##  then decrement the counter (if possible). This makes it
                 ##  so that the loop won't go on for forever. This algorithm
                 ##  isn't perfect, but it works okayish.
-                if(last_exception_time + Exception_Helper.ATTEMPT_COOLDOWN < time.time() and attempts > 0):
+                if(last_exception_time + self.static.ATTEMPT_COOLDOWN < time.time() and attempts > 0):
                     attempts -= 1
                 else:
                     attempts += 1
