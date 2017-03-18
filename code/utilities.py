@@ -19,6 +19,12 @@ class Utilities:
             return root
 
 
+    ## Builds an OS friendly path made of the given path elements
+    @staticmethod
+    def build_path(*elements):
+        return os.path.sep.join(elements)
+
+
     ## Builds a path from the project root through the given path elements
     @staticmethod
     def build_path_from_root(*elements, **kwargs):

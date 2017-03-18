@@ -20,7 +20,7 @@ class Scraper:
     REDDIT_CFG_NAME = "reddit.json"
     REDDIT_CFG_PATH = Utilities.build_path_from_config(REDDIT_CFG_NAME)
 
-    def __init__(self, db_controller):
+    def __init__(self, db_controller=None, **kwargs):
         static = Scraper
 
         ## Init the exception helper
@@ -49,12 +49,15 @@ class Scraper:
         except Exception as e:
             self.exception_helper.print(e, "Unexpected error when getting subreddit instance.\n", exit=True)
 
-        ## Save the db_controller
+        ## Save the db_controller, or instantiate it if necessary
+        if(not db_controller):
+            db_controller = DB_Controller(**kwargs)
         self.db = db_controller
 
         ## Start parsing the new comment stream
         self.exception_helper.make_robust(self.stream_comments, (requests.RequestException, Exception), self.exception_helper.print_stderr, self.exception_helper.print_stderr)
 
+    ## Methods
 
     def stream_comments(self):
         for comment in self.subreddit.stream.comments():
@@ -76,11 +79,11 @@ class Scraper:
 @click.option("--remote", "-r", is_flag=True,
               help="Denotes whether or not the scraper is accessing the database remotely (using {0} instead of {1})".format(DB_Controller.REMOTE_DB_CFG_NAME, DB_Controller.DB_CFG_NAME))
 def main(remote):
-    ## Init DB_Controller
-    db_controller = DB_Controller(remote=remote)
+    ## Handle the args
+    kwargs = {"remote": remote}
 
     ## Init Scraper
-    scraper = Scraper(db_controller)
+    scraper = Scraper(**kwargs)
 
 
 if __name__ == '__main__':

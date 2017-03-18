@@ -27,8 +27,8 @@ class ExceptionHelper:
     def __init__(self, **kwargs):
         self.static = ExceptionHelper
 
-        self.log_time = kwargs.get(self.static.LOG_TIME)
-        self.std_stream = kwargs.get(self.static.STD_STREAM)
+        self.log_time = kwargs.get(self.static.LOG_TIME, True)
+        self.std_stream = kwargs.get(self.static.STD_STREAM, sys.stdout)
         self.time_format = kwargs.get(self.static.TIME_FORMAT,
                                       self.static.DEFAULT_TIME_FORMAT)
 
