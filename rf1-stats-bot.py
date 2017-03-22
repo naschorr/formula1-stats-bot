@@ -1,27 +1,39 @@
+#!/usr/bin/python
+
 from __future__ import print_function
 
 import sys
 import os
+import subprocess
+
+## Build path to the root directory (without utilities.py)
+ROOT_DIR = os.path.sep.join(os.path.realpath(__file__).split(os.path.sep)[:-1])
+
+## Build the path to the virtualenv activation script
+if(os.name == "nt"):
+    VIRTUALENV_ACTIVATE_PATH = os.path.sep.join([ROOT_DIR, "Scripts", "activate_this.py"])
+else:
+    VIRTUALENV_ACTIVATE_PATH = os.path.sep.join([ROOT_DIR, "bin", "activate_this.py"])
+
+## Activate the virtualenv in this interpreter
+if(sys.version_info[0] > 3):
+	exec(compile(open(VIRTUALENV_ACTIVATE_PATH, "rb").read(), VIRTUALENV_ACTIVATE_PATH, 'exec'))
+else:
+	execfile(VIRTUALENV_ACTIVATE_PATH, dict(__file__=VIRTUALENV_ACTIVATE_PATH))
+
+## Load virtualenv specific modules
 import psutil
 import click
-import subprocess
 
 ## Put the code/ dir into the python path
 sys.path.append(os.path.sep.join(os.path.realpath(__file__).split(os.path.sep)[:-1] + ["code"]))
 
+## Finally, load all modules used for this program
 from utilities import Utilities
 from scraper import Scraper
-from flair_scraper import FlairScraper
 from db_controller import DB_Controller
 from exception_helper import ExceptionHelper
-
-if(os.name == "nt"):
-    VIRTUALENV_ACTIVATE_PATH = Utilities.build_path_from_root("Scripts", "activate_this.py")
-else:
-    VIRTUALENV_ACTIVATE_PATH = Utilities.build_path_from_root("bin", "activate_this.py")
-
-## Activate the virtualenv in this script
-exec(compile(open(VIRTUALENV_ACTIVATE_PATH, "rb").read(), VIRTUALENV_ACTIVATE_PATH, 'exec'))
+from flair_scraper import FlairScraper
 
 
 class RF1_Stats_Bot:
@@ -30,7 +42,7 @@ class RF1_Stats_Bot:
     TEMP_FILE_NAME = "tmp"
 
     ## Globals
-    POSTGRES_VERSION = 9.1
+    POSTGRES_VERSION = "9.1"
     PROCESS_KILL_TIMEOUT = 5
     PID_FILE_NAME = NAME + ".pid"
     PID_FILE_PATH = Utilities.build_path_from_root(TEMP_FILE_NAME, PID_FILE_NAME)
@@ -44,8 +56,11 @@ class RF1_Stats_Bot:
         ## Make sure the temp file is available
         try:
             os.makedirs(Utilities.build_path_from_root(self.static.TEMP_FILE_NAME))
-        except FileExistsError as e:
-            pass    # File exists, no worries
+        except OSError as e:	# FileExistsError for Python < 3
+	    if(e.errno == 17):
+	        pass    # File exists, no worries
+	except FileExistsError as e:	# FileExistsError for Python > 3
+	    pass
 
         self.exception_helper = ExceptionHelper(**kwargs)
 
@@ -54,6 +69,7 @@ class RF1_Stats_Bot:
         elif(kwargs.get("start", False)):
             self._start(**kwargs)
         elif(kwargs.get("pid", False)):
+	    self._get_pid_file()
             print(self.pid)
         elif(kwargs.get("flair_scraper", False)):
             self._start_flair_scraper()
@@ -89,7 +105,7 @@ class RF1_Stats_Bot:
                                         exit=True)
 
         try:
-            pid = psutil.Process()  ## Pid of this process
+            pid = psutil.Process().pid  ## Pid of this process
             self.pid = pid
             self._save_pid_file()
 
@@ -98,7 +114,7 @@ class RF1_Stats_Bot:
             self._cleanup()
 
 
-    def _stop():
+    def _stop(self):
         self._get_pid_file()
         process = psutil.Process(self.pid)
         try:
@@ -132,7 +148,7 @@ class RF1_Stats_Bot:
                 open(pid_path, "w").close()
         else:
             with open(pid_path, "w") as pid_file:
-                    pid_file.write(pid)
+                    pid_file.write(str(pid))
 
 
     def _get_pid_file(self):
@@ -162,15 +178,16 @@ class RF1_Stats_Bot:
             return any([proc.name() in "postgresql" for proc in psutil.process_iter()])
         else:
             try:
-                if(self.static.POSTGRES_VERSION in subprocess.check_output(["service", 
-                                                                            "postgresql", 
+                if(self.static.POSTGRES_VERSION in subprocess.check_output(["/usr/sbin/service", 
+                                                                            "postgresql",
                                                                             "status"])):
                     return True
+		else:
+		    return False
             except subprocess.CalledProcessError as e:
                 self.exception_helper.print(e, "Postgres isn't running", 
                                             "Returned error code: {0}, and output: {1}".format(e.returncode, e.output))
-            finally:
-                return False
+		return False
 
 
 @click.command()
@@ -186,10 +203,6 @@ def main(start, quiet, stop, flair_scraper, overwrite, pid, remote):
         "start": start, "quiet": quiet, "stop": stop, 
         "flair_scraper": flair_scraper, "pid": pid, "remote": remote
     }
-
-    ## TODO: remote these debug overrides
-    kwargs["start"] = True
-    kwargs["remote"] = True
 
     RF1_Stats_Bot(**kwargs)
 
