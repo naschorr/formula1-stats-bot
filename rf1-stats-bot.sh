@@ -33,10 +33,21 @@ function get_pid () {
 function is_running () {
 	pid=$(get_pid)
 	if [[ ${pid} -gt 0 ]]; then
-		return 0
+		kill -0 "$pid" >/dev/null 2>&1
+		ret=$?
+		if [[ $ret -eq 0 ]]; then
+			return 0
+		else
+			#clear_pid_file
+			return 1
+		fi
 	else
 		return 1
 	fi
+}
+
+function clear_pid_file () {
+	> $PID_FILE
 }
 
 until postgres_started; do
@@ -58,18 +69,19 @@ case "$1" in
 	# TODO: background mode?
 	-q|--quiet)
 		if is_running; then
+			echo "$NAME is already running with PID: $pid" 2> >(tee >>$ERR_LOG)
 			exit 1
 		fi
-		python $DIR/code/scraper.py >/dev/null 2>$ERR_LOG & echo $! > $PID_FILE
+		python $DIR/code/scraper.py >/dev/null 2>>$ERR_LOG & echo $! > $PID_FILE
 		;;
 
 	""|--start)
                 if is_running; then
-			echo "$NAME is already running with PID: $pid" 2> >(tee $ERR_LOG)
+			echo "$NAME is already running with PID: $pid" 2> >(tee >>$ERR_LOG)
 			exit 1
 		fi
 		echo "Starting $NAME normally (stderr -> stdout and $ERR_LOG)"
-		python $DIR/code/scraper.py 2> >(tee $ERR_LOG) & echo $! > $PID_FILE
+		python $DIR/code/scraper.py 2> >(tee >>$ERR_LOG) & echo $! > $PID_FILE
 		;;
 
 	--stop)
@@ -96,7 +108,7 @@ case "$1" in
 		;;
 
 	--pid)
-		if [[ ${pid} -gt 0 ]]; then
+		if is_running; then
 			echo "$NAME has PID: $pid"
 		else
 			echo "$NAME doesn't have a PID"
@@ -116,7 +128,7 @@ esac
 fg >/dev/null
 
 # Empty the pid file
-> $PID_FILE
+clear_pid_file
 
 # Deactivate the virtualenv
 deactivate
