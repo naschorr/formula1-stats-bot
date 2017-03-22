@@ -5,7 +5,10 @@ from utilities import Utilities
 import os
 import json
 import click
-from html.parser import HTMLParser
+try:
+	from html.parser import HTMLParser
+except ImportError:
+	from HTMLParser import HTMLParser
 
 
 class FlairTableParser(HTMLParser):
