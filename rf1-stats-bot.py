@@ -16,10 +16,10 @@ else:
     VIRTUALENV_ACTIVATE_PATH = os.path.sep.join([ROOT_DIR, "bin", "activate_this.py"])
 
 ## Activate the virtualenv in this interpreter
-if(sys.version_info[0] > 3):
-	exec(compile(open(VIRTUALENV_ACTIVATE_PATH, "rb").read(), VIRTUALENV_ACTIVATE_PATH, 'exec'))
+if(sys.version_info[0] >= 3):
+    exec(compile(open(VIRTUALENV_ACTIVATE_PATH, "rb").read(), VIRTUALENV_ACTIVATE_PATH, 'exec'))
 else:
-	execfile(VIRTUALENV_ACTIVATE_PATH, dict(__file__=VIRTUALENV_ACTIVATE_PATH))
+    execfile(VIRTUALENV_ACTIVATE_PATH, dict(__file__=VIRTUALENV_ACTIVATE_PATH))
 
 ## Load virtualenv specific modules
 import psutil
@@ -56,11 +56,11 @@ class RF1_Stats_Bot:
         ## Make sure the temp file is available
         try:
             os.makedirs(Utilities.build_path_from_root(self.static.TEMP_FILE_NAME))
-        except OSError as e:	# FileExistsError for Python < 3
-	    if(e.errno == 17):
-	        pass    # File exists, no worries
-	except FileExistsError as e:	# FileExistsError for Python > 3
-	    pass
+        except OSError as e:    # FileExistsError for Python < 3
+            if(e.errno == 17):
+                pass    # File exists, no worries
+        except FileExistsError as e:    # FileExistsError for Python > 3
+            pass
 
         self.exception_helper = ExceptionHelper(**kwargs)
 
@@ -69,8 +69,10 @@ class RF1_Stats_Bot:
         elif(kwargs.get("start", False)):
             self._start(**kwargs)
         elif(kwargs.get("pid", False)):
-	    self._get_pid_file()
+            self._get_pid_file()
             print(self.pid)
+        elif(kwargs.get("rows"), False):
+            print(self._get_row_count(**kwargs))
         elif(kwargs.get("flair_scraper", False)):
             self._start_flair_scraper()
         else:
@@ -130,6 +132,11 @@ class RF1_Stats_Bot:
             self._cleanup()
 
 
+    def _get_row_count(self, **kwargs):
+        kwargs["suppress_greeting"] = True
+        return DB_Controller(**kwargs).count_rows()
+
+
     def _start_flair_scraper(self, *args, **kwargs):
         overwrite = kwargs.get("overwrite", False)
         FlairScraper(overwrite)
@@ -182,12 +189,12 @@ class RF1_Stats_Bot:
                                                                             "postgresql",
                                                                             "status"])):
                     return True
-		else:
-		    return False
+                else:
+                    return False
             except subprocess.CalledProcessError as e:
                 self.exception_helper.print(e, "Postgres isn't running", 
                                             "Returned error code: {0}, and output: {1}".format(e.returncode, e.output))
-		return False
+                return False
 
 
 @click.command()
@@ -198,10 +205,11 @@ class RF1_Stats_Bot:
 @click.option("--flair-scraper", is_flag=True, help="Starts the flair scraper")
 @click.option("--pid", "-p", is_flag=True, help="Shows the pid of the scraper process")
 @click.option("--remote", "-r", is_flag=True, help="Denotes whether or not the scraper is accessing the database remotely (using {0} instead of {1})".format(DB_Controller.REMOTE_DB_CFG_NAME, DB_Controller.DB_CFG_NAME))
-def main(start, quiet, stop, flair_scraper, overwrite, pid, remote):
+@click.option("--rows", is_flag=True, help="Gets a count of the rows currently stored in the database")
+def main(start, quiet, stop, flair_scraper, overwrite, pid, remote, rows):
     kwargs = {
-        "start": start, "quiet": quiet, "stop": stop, 
-        "flair_scraper": flair_scraper, "pid": pid, "remote": remote
+        "start": start, "quiet": quiet, "stop": stop, "flair_scraper": flair_scraper, "pid": pid,
+        "remote": remote, "rows": rows
     }
 
     RF1_Stats_Bot(**kwargs)

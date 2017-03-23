@@ -51,8 +51,9 @@ class DB_Controller:
         ## Get the table that'll be worked with
         self.table = self.db_cfg["table"]
 
-        ## Display row count on startup
-        print("Currently {0} rows in table {1}.".format(self.count_rows(), self.table))
+        ## Display row count on startup (if not disabled)
+        if(not kwargs.get("suppress_greeting", False)):
+            print("Currently {0} rows in table {1}.".format(self.count_rows(), self.table))
 
 
     def count_rows(self):
