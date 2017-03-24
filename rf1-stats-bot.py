@@ -68,6 +68,14 @@ class RF1_Stats_Bot:
             self._stop()
         elif(kwargs.get("start", False)):
             self._start(**kwargs)
+        elif(kwargs.get("restart", False)):
+            self._stop()
+            self._start(**kwargs)
+        elif(kwargs.get("status", False)):
+            if(self._is_running()):
+                print("{0} running with PID: {1}".format(self.static.NAME, self.pid))
+            else:
+                print("{0} isn't running".format(self.static.NAME))
         elif(kwargs.get("pid", False)):
             self._get_pid_file()
             print(self.pid)
@@ -201,15 +209,17 @@ class RF1_Stats_Bot:
 @click.option("--start", is_flag=True, help="Starts the scraper normally")
 @click.option("--quiet", is_flag=True, help="Starts the scraper quietly (no stdout)")
 @click.option("--stop", is_flag=True, help="Stops the scraper process")
+@click.option("--restart", is_flag=True, help="Restarts the scraper")
+@click.option("--status", is_flag=True, help="A more human readable --pid")
 @click.option("--overwrite", is_flag=True, help="Overwrites any existing files when outputting {0}".format(FlairScraper.FLAIR_JSON_NAME))
 @click.option("--flair-scraper", is_flag=True, help="Starts the flair scraper")
 @click.option("--pid", "-p", is_flag=True, help="Shows the pid of the scraper process")
 @click.option("--remote", "-r", is_flag=True, help="Denotes whether or not the scraper is accessing the database remotely (using {0} instead of {1})".format(DB_Controller.REMOTE_DB_CFG_NAME, DB_Controller.DB_CFG_NAME))
 @click.option("--rows", is_flag=True, help="Gets a count of the rows currently stored in the database")
-def main(start, quiet, stop, flair_scraper, overwrite, pid, remote, rows):
+def main(start, quiet, stop, restart, status, flair_scraper, overwrite, pid, remote, rows):
     kwargs = {
-        "start": start, "quiet": quiet, "stop": stop, "flair_scraper": flair_scraper, "pid": pid,
-        "remote": remote, "rows": rows
+        "start": start, "quiet": quiet, "stop": stop, "restart": restart, "status": status,
+        "flair_scraper": flair_scraper, "pid": pid, "remote": remote, "rows": rows
     }
 
     RF1_Stats_Bot(**kwargs)
