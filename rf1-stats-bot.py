@@ -79,10 +79,10 @@ class RF1_Stats_Bot:
         elif(kwargs.get("pid", False)):
             self._get_pid_file()
             print(self.pid)
-        elif(kwargs.get("rows"), False):
+        elif(kwargs.get("rows", False)):
             print(self._get_row_count(**kwargs))
         elif(kwargs.get("flair_scraper", False)):
-            self._start_flair_scraper()
+            self._start_flair_scraper(**kwargs)
         else:
             self._start()
 
@@ -145,9 +145,9 @@ class RF1_Stats_Bot:
         return DB_Controller(**kwargs).count_rows()
 
 
-    def _start_flair_scraper(self, *args, **kwargs):
-        overwrite = kwargs.get("overwrite", False)
-        FlairScraper(overwrite)
+    def _start_flair_scraper(self, **kwargs):
+	print("FS, ", kwargs)
+        FlairScraper(**kwargs)
 
 
     def _cleanup(self):
@@ -216,7 +216,7 @@ class RF1_Stats_Bot:
 @click.option("--pid", "-p", is_flag=True, help="Shows the pid of the scraper process")
 @click.option("--remote", "-r", is_flag=True, help="Denotes whether or not the scraper is accessing the database remotely (using {0} instead of {1})".format(DB_Controller.REMOTE_DB_CFG_NAME, DB_Controller.DB_CFG_NAME))
 @click.option("--rows", is_flag=True, help="Gets a count of the rows currently stored in the database")
-def main(start, quiet, stop, restart, status, flair_scraper, overwrite, pid, remote, rows):
+def main(start, quiet, stop, restart, status, overwrite, flair_scraper, pid, remote, rows):
     kwargs = {
         "start": start, "quiet": quiet, "stop": stop, "restart": restart, "status": status,
         "flair_scraper": flair_scraper, "pid": pid, "remote": remote, "rows": rows
