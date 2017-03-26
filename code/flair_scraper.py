@@ -13,7 +13,10 @@ except ImportError:
 
 class FlairTableParser(HTMLParser):
     def __init__(self):
-        super(FlairTableParser, self).__init__()
+	try:
+	        super(FlairTableParser, self).__init__()
+        except TypeError:
+                HTMLParser.__init__(self)  # Python 2 old style classes http://stackoverflow.com/a/11527947
         self.get_flair_data = False
         self.flairs = set()
 
