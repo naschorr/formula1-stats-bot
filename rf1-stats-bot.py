@@ -146,7 +146,6 @@ class RF1_Stats_Bot:
 
 
     def _start_flair_scraper(self, **kwargs):
-	print("FS, ", kwargs)
         FlairScraper(**kwargs)
 
 
@@ -159,11 +158,11 @@ class RF1_Stats_Bot:
         pid_path = self.static.PID_FILE_PATH
         pid = self.pid
         if(not pid):
-                os.remove(pid_path)
-                open(pid_path, "w").close()
+            os.remove(pid_path)
+            open(pid_path, "w").close()
         else:
             with open(pid_path, "w") as pid_file:
-                    pid_file.write(str(pid))
+                pid_file.write(str(pid))
 
 
     def _get_pid_file(self):

@@ -3,51 +3,73 @@ from __future__ import print_function
 from utilities import Utilities
 
 import os
+import sys
 import json
+import time
 import click
 try:
-	from html.parser import HTMLParser
+    from html.parser import HTMLParser
 except ImportError:
-	from HTMLParser import HTMLParser
+    from HTMLParser import HTMLParser
 
 
 class FlairTableParser(HTMLParser):
     def __init__(self):
-	try:
-	        super(FlairTableParser, self).__init__()
+        try:
+            super(FlairTableParser, self).__init__()
         except TypeError:
-                HTMLParser.__init__(self)  # Python 2 old style classes http://stackoverflow.com/a/11527947
-        self.get_flair_data = False
+            HTMLParser.__init__(self)  # Python 2 old style classes http://stackoverflow.com/a/11527947
+        self.inside_flair_option_pane = False
+        self.inside_flair_span = False
         self.flairs = set()
 
     ## Overridden Methods
 
     def handle_starttag(self, tag, attrs):
-        ## Don't bother with non-span tags
-        if("span" != tag):
+        ## Make sure we're parsing the flair table
+        if("div" == tag and self.is_value_in_tuple_list("flairoptionpane", attrs)):
+            self.inside_flair_option_pane = True
+            return
+
+        ## Don't bother with non-span tags, or if we're not inside the flair
+        ##  option pane.
+        if("span" != tag or not self.inside_flair_option_pane):
             return
 
         ## Look through all HTMLParser attr pairs, and only enable the
-        ## get_flair_data flag if pair's name is "class", and the value
+        ## inside_flair_span flag if pair's name is "class", and the value
         ## has "flair" in it but not "flair-lable" or "flair-empty".
         for pair in attrs:
             if("class" == pair[0]): # and "flair" in pair[1]):
                 classes = pair[1].split()
                 if("flair" in classes and 
                     not any(flair_class in classes for flair_class in ["flair-label", "flair-empty"])):
-                    self.get_flair_data = True
+                    self.inside_flair_span = True
 
 
     def handle_endtag(self, tag):
-        ## Clear the flag at the end of every span
-        if("span" == tag):
-            self.get_flair_data = False
+        ## Clear the flags
+        if("div" == tag and self.inside_flair_option_pane):
+            self.inside_flair_option_pane = False
+
+        if("span" == tag and self.inside_flair_span):
+            self.inside_flair_span = False
 
 
     def handle_data(self, data):
         ## The data in a qualifying span is the flair, so add it into the set
-        if(self.get_flair_data):
+        if(self.inside_flair_span):
             self.flairs.add(data)
+
+    ## Methods
+
+    def is_value_in_tuple_list(self, value, tuple_list):
+        for t in tuple_list:
+            for item in t:
+                if(value in item):
+                    return True
+
+        return False
 
 
 class FlairScraper:
@@ -57,6 +79,10 @@ class FlairScraper:
     ## Globals
     FLAIR_TABLE_NAME = "flair_table.html"
     FLAIR_JSON_NAME = "flairs.json"
+    FLAIR_URL_SOURCE = "https://www.reddit.com/r/formula1/"
+    REDDIT_CFG_NAME = "reddit.json"
+    REDDIT_CFG_PATH = Utilities.build_path_from_config(REDDIT_CFG_NAME)
+    EDIT_FLAIR_BTN_SELECTOR = "a.flairselectbtn.access-required"
 
     ## The flair_table.html is a prettified html file. (Prettifying not required?)
     ## It's made by hitting the 'edit' flair button, and then right-clicking 
@@ -78,7 +104,9 @@ class FlairScraper:
 
         ## Init the parser and start reading data into it
         parser = FlairTableParser()
-        self.read_flair_table(self.static.FLAIR_TABLE_PATH, parser.feed)
+
+        ## Feed the open flair table containing html into the parser
+        parser.feed(self.open_flair_editor_html(self.static.FLAIR_URL_SOURCE))
         
         ## Get a sorted list of the flairs
         self.flairs = sorted(parser.flairs)
@@ -97,9 +125,41 @@ class FlairScraper:
 
     ## Methods
 
-    def read_flair_table(self, flair_table_path, callback):
-        for line in open(flair_table_path, "r"):
-            callback(line)
+    def open_flair_editor_html(self, url):
+        from selenium import webdriver
+
+        ## Load the Reddit credentials
+        reddit_cfg = Utilities.load_json(self.static.REDDIT_CFG_PATH)
+
+        ## Init the webdriver (make sure the driver is in your system PATH)
+        ##  https://sites.google.com/a/chromium.org/chromedriver/downloads)
+        driver = webdriver.Chrome()
+        driver.get(url)
+
+        ## Login to Reddit - http://stackoverflow.com/a/30662876
+        form = driver.find_element_by_id("login_login-main")
+
+        username = form.find_element_by_name("user")
+        username.clear()
+        username.send_keys(reddit_cfg["username"])
+
+        password = form.find_element_by_name("passwd")
+        password.clear()
+        password.send_keys(reddit_cfg["password"])
+
+        submit = form.find_element_by_xpath("//button[. = 'login']")
+        submit.click()
+
+        ## Wait for login
+        time.sleep(2)
+
+        ## Open the edit flair table
+        driver.find_element_by_css_selector(self.static.EDIT_FLAIR_BTN_SELECTOR).click()
+
+        ## Wait for flair table to open
+        time.sleep(2)
+
+        return driver.page_source
 
 
     def save_flair_json(self, flair_json_path, overwrite, **kwargs):
@@ -116,6 +176,7 @@ class FlairScraper:
 def main(overwrite):
     ## Init the flair scraper
     FlairScraper(overwrite=overwrite)
+    sys.stdout.flush()
 
 
 if __name__ == '__main__':

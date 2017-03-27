@@ -46,3 +46,6 @@ tcl/
 
 # Ignore my WIP daemon
 service-rf1-stats-bot
+
+# Ignore selenium directory
+selenium/
