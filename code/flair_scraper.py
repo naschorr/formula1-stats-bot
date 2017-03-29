@@ -107,7 +107,7 @@ class FlairScraper:
 
         ## Feed the open flair table containing html into the parser
         parser.feed(self.open_flair_editor_html(self.static.FLAIR_URL_SOURCE))
-        
+
         ## Get a sorted list of the flairs
         self.flairs = sorted(parser.flairs)
 
@@ -116,12 +116,12 @@ class FlairScraper:
         try:
             self.save_flair_json(self.static.FLAIR_JSON_PATH, self.overwrite, **json_dumps_kwargs)
         except Exception as e:
-            print("Exception while saving {0} to {1}:\n".format(FlairScraper.FLAIR_JSON_NAME, self.static.FLAIR_JSON_PATH), e)
+            print("Exception while saving {0} to {1}:\n".format(FlairScraper.FLAIR_JSON_NAME, self.static.FLAIR_JSON_PATH), e, flush=True)
             return
         else:
             ## If the save was successful, print the encoded json
             print(FlairScraper.FLAIR_JSON_NAME, "output:")
-            print(json.dumps({self.static.FLAIRS: self.flairs}, **json_dumps_kwargs))
+            print(json.dumps({self.static.FLAIRS: self.flairs}, **json_dumps_kwargs), flush=True)
 
     ## Methods
 
@@ -176,7 +176,6 @@ class FlairScraper:
 def main(overwrite):
     ## Init the flair scraper
     FlairScraper(overwrite=overwrite)
-    sys.stdout.flush()
 
 
 if __name__ == '__main__':
