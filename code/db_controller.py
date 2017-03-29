@@ -56,23 +56,29 @@ class DB_Controller:
             print("Currently {0} rows in table {1}.".format(self.count_rows(), self.table))
 
 
-    def count_rows(self):
+    def count_rows(self, table=None):
+        if(not table):
+            table = self.table
+
         with self.db.cursor() as cursor:
-            cursor.execute("SELECT COUNT(*) FROM {0};".format(self.table))
+            cursor.execute("SELECT COUNT(*) FROM {0};".format(table))
             return cursor.fetchone()[0]
 
 
-    def store_comment(self, comment_obj):
+    def store_comment(self, comment_obj, table=None):
+        if(not table):
+            table = self.table
+
         ## Stage changes to the db
         with self.db.cursor() as cursor:
-            raw =  """INSERT INTO {0} (post_id, author, time_created, flair, 
+            raw =  """INSERT INTO {0} (post_id, author, time_created, flair,
                       body) VALUES (%s, %s, %s, %s, %s);"""
             try:
-                cursor.execute(raw.format(self.table), (comment_obj.id.id,
-                                                        comment_obj.author,
-                                                        comment_obj.time,
-                                                        comment_obj.flair,
-                                                        comment_obj.text))
+                cursor.execute(raw.format(table), (comment_obj.id.id,
+                                                   comment_obj.author,
+                                                   comment_obj.time,
+                                                   comment_obj.flair,
+                                                   comment_obj.text))
             except psycopg2.IntegrityError as e:
                 self.exception_helper.print(e, "Primary key integrity error.\n")
                 self.db.rollback()
@@ -88,12 +94,24 @@ class DB_Controller:
                 else:
 
                     ## Output the successfully added comment
-                    self.dump_comment(comment_obj)
+                    comment_obj.dump()
 
 
-    def dump_comment(self, comment_obj):
-        try:
-            comment_obj.print_all()
-            sys.stdout.flush()
-        except UnicodeEncodeError as e:
-            self.exception_helper.print(e, "Error rendering this comment's unicode. Skipping...\n")
+    def delete_row(self, post_id, table=None):
+        if(not table):
+            table = self.table
+
+        ## Stage changes to the db
+        with self.db.cursor() as cursor:
+            raw = "DELETE FROM {0} WHERE post_id = %s;"
+            try:
+                cursor.execute(raw.format(table), (post_id,))
+            except Exception as e:
+                self.exception_helper.print(e, "Unexpected error when removing row with post_id: {0} from the database.\n".format(post_id), exit=True)
+            else:
+
+                ## Commit changes to the db
+                try:
+                    self.db.commit()
+                except Exception as e:
+                    self.exception_helper.print(e, "Unexpected error when committing changes to the database.\n", exit=True)

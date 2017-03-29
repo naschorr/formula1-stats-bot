@@ -1,5 +1,7 @@
 from __future__ import print_function
 
+import sys
+
 
 class CommentId:
     def __init__(self, comment_id):
@@ -31,11 +33,11 @@ class Comment:
         self.id = CommentId(post_id)
         self.author = str(author)
         self.time = int(created_utc)
-        self.flair = str(flair_text.encode("UTF8")).strip()
-        self.text = str(body.encode("UTF8")).strip()
+        self.flair = str(flair_text).strip()
+        self.text = str(body).strip()
 
     def __repr__(self):
-        raw = "{}: Id={}, Author={}, Time={}, Flair={}, BodyLen={}"
+        raw = "{}: id={}, author={}, time={}, flair={}, body_len={}"
         return raw.format(self.__class__.__name__, self.id.id, self.author,
                           self.time, self.flair, len(self.text))
 
@@ -86,10 +88,14 @@ class Comment:
     def strip(self, string):
         return string.lstrip().rstrip()
 
-    def print_all(self):
-        print("-------------")
-        print(self.id.id, self.id.base10())
-        print(self.author)
-        print(self.time)
-        print(self.flair)
-        print(self.text)
+    def dump(self):
+        try:
+            print("-------------")
+            print(self.id.id, self.id.base10())
+            print(self.author)
+            print(self.time)
+            print(self.flair)
+            print(self.text)
+            sys.stdout.flush()
+        except UnicodeEncodeError as e:
+            print(e, "Error rendering this comment's unicode. Skipping...\n")
