@@ -72,10 +72,7 @@ class RF1_Stats_Bot:
             self._stop()
             self._start(**kwargs)
         elif(kwargs.get("status", False)):
-            if(self._is_running()):
-                print("{0} running with PID: {1}".format(self.static.NAME, self.pid))
-            else:
-                print("{0} isn't running".format(self.static.NAME))
+            self._status()
         elif(kwargs.get("pid", False)):
             self._get_pid_file()
             print(self.pid)
@@ -84,7 +81,7 @@ class RF1_Stats_Bot:
         elif(kwargs.get("flair_scraper", False)):
             self._start_flair_scraper(**kwargs)
         else:
-            self._start()
+            self._start(**kwargs)
 
     ## PID Getters / Setters
 
@@ -138,6 +135,13 @@ class RF1_Stats_Bot:
             process.kill()
         finally:
             self._cleanup()
+
+
+    def _status(self):
+        if(self._is_running()):
+            print("{0} running with PID: {1}".format(self.static.NAME, self.pid))
+        else:
+            print("{0} isn't running".format(self.static.NAME))
 
 
     def _get_row_count(self, **kwargs):
