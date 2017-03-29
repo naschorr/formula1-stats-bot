@@ -15,11 +15,15 @@ if(os.name == "nt"):
 else:
     VIRTUALENV_ACTIVATE_PATH = os.path.sep.join([ROOT_DIR, "bin", "activate_this.py"])
 
-## Activate the virtualenv in this interpreter
+## Activate the virtualenv in this interpreter and change default encoding if necessary
 if(sys.version_info[0] >= 3):
     exec(compile(open(VIRTUALENV_ACTIVATE_PATH, "rb").read(), VIRTUALENV_ACTIVATE_PATH, 'exec'))
 else:
     execfile(VIRTUALENV_ACTIVATE_PATH, dict(__file__=VIRTUALENV_ACTIVATE_PATH))
+
+    ## Python 2 defaults to ascii encoding which absolutely won't work for this
+    reload(sys)
+    sys.setdefaultencoding("utf-8")
 
 ## Load virtualenv specific modules
 import psutil
@@ -185,8 +189,7 @@ class RF1_Stats_Bot:
             return True
         else:   ## pid file has a pid in it, but no process has that pid
             self.exception_helper.print(None,
-                                        "Pid in {0}, but no process attached. This shouldn't \
-                                        happen. Cleaning up.".format(self.static.PID_FILE_PATH))
+                                        "Pid in {0}, but no process attached. This shouldn't happen. Cleaning up.".format(self.static.PID_FILE_PATH))
             self._cleanup()
             return False
 
