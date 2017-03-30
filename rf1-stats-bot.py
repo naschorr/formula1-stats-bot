@@ -10,17 +10,19 @@ import subprocess
 ROOT_DIR = os.path.sep.join(os.path.realpath(__file__).split(os.path.sep)[:-1])
 
 ## Build the path to the virtualenv activation script
-if(os.name == "nt"):
+if (os.name == "nt"):
     VIRTUALENV_ACTIVATE_PATH = os.path.sep.join([ROOT_DIR, "Scripts", "activate_this.py"])
 else:
     VIRTUALENV_ACTIVATE_PATH = os.path.sep.join([ROOT_DIR, "bin", "activate_this.py"])
 
-## Activate the virtualenv in this interpreter and change default encoding if necessary
-if(sys.version_info[0] >= 3):
+## Perform platform specific initialization
+## Activate the virtualenv in this interpreter
+if (sys.version_info[0] >= 3):
     exec(compile(open(VIRTUALENV_ACTIVATE_PATH, "rb").read(), VIRTUALENV_ACTIVATE_PATH, 'exec'))
 else:
     execfile(VIRTUALENV_ACTIVATE_PATH, dict(__file__=VIRTUALENV_ACTIVATE_PATH))
 
+    ## Change encoding to UTF-8
     ## Python 2 defaults to ascii encoding which absolutely won't work for this
     reload(sys)
     sys.setdefaultencoding("utf-8")
@@ -41,11 +43,9 @@ from flair_scraper import FlairScraper
 
 
 class RF1_Stats_Bot:
-    ## Literals
+    ## Globals
     NAME = "rf1-stats-bot"
     TEMP_FILE_NAME = "tmp"
-
-    ## Globals
     POSTGRES_VERSION = "9.1"
     PROCESS_KILL_TIMEOUT = 5
     PID_FILE_NAME = NAME + ".pid"
@@ -61,14 +61,14 @@ class RF1_Stats_Bot:
         try:
             os.makedirs(Utilities.build_path_from_root(self.static.TEMP_FILE_NAME))
         except OSError as e:    # FileExistsError for Python < 3
-            if(e.errno == 17):
+            if (e.errno == 17):
                 pass    # File exists, no worries
         except FileExistsError as e:    # FileExistsError for Python > 3
             pass
 
         self.exception_helper = ExceptionHelper(**kwargs)
 
-        if(kwargs.get("stop", False)):
+        if (kwargs.get("stop", False)):
             self._stop()
         elif(kwargs.get("start", False)):
             self._start(**kwargs)
@@ -97,7 +97,7 @@ class RF1_Stats_Bot:
     def pid(self, value):
         try:
             value = int(value)
-            if(value <= 0):
+            if (value <= 0):
                 value = None
         except Exception as e:
             value = None
@@ -107,13 +107,12 @@ class RF1_Stats_Bot:
     ## Methods
 
     def _start(self, *args, **kwargs):
-        if(not kwargs.get("remote", False) and not self._is_postgres_running()):
+        if (not kwargs.get("remote", False) and not self._is_postgres_running()):
             self.exception_helper.print(None, "Postgres isn't running. Exiting.", exit=True)
 
-        if(self._is_running()):
-            self.exception_helper.print(None, 
-                                        "{0} is already running. Exiting.".format(self.static.NAME),
-                                        exit=True)
+        if (self._is_running()):
+            raw = "{0} is already running. Exiting."
+            self.exception_helper.print(None, raw.format(self.static.NAME), exit=True)
 
         try:
             pid = psutil.Process().pid  ## Pid of this process
@@ -142,7 +141,7 @@ class RF1_Stats_Bot:
 
 
     def _status(self):
-        if(self._is_running()):
+        if (self._is_running()):
             print("{0} running with PID: {1}".format(self.static.NAME, self.pid))
         else:
             print("{0} isn't running".format(self.static.NAME))
@@ -165,7 +164,7 @@ class RF1_Stats_Bot:
     def _save_pid_file(self):
         pid_path = self.static.PID_FILE_PATH
         pid = self.pid
-        if(not pid):
+        if (not pid):
             os.remove(pid_path)
             open(pid_path, "w").close()
         else:
@@ -183,31 +182,32 @@ class RF1_Stats_Bot:
 
     def _is_running(self):
         self._get_pid_file()
-        if(not self.pid):
+        if (not self.pid):
             return False
         elif(psutil.pid_exists(self.pid)):
             return True
         else:   ## pid file has a pid in it, but no process has that pid
-            self.exception_helper.print(None,
-                                        "Pid in {0}, but no process attached. This shouldn't happen. Cleaning up.".format(self.static.PID_FILE_PATH))
+            raw = "Pid in {0}, but no process attached. This shouldn't happen. Cleaning up."
+            self.exception_helper.print(None, raw.format(self.static.PID_FILE_PATH))
             self._cleanup()
             return False
 
 
     def _is_postgres_running(self):
-        if(os.name == "nt"):
-            return any([proc.name() in "postgresql" for proc in psutil.process_iter()])
+        if (os.name == "nt"):
+            return any([proc.name() in "postgresql" for proc 
+                        in psutil.process_iter()])
         else:
             try:
-                if(self.static.POSTGRES_VERSION in subprocess.check_output(["/usr/sbin/service", 
-                                                                            "postgresql",
-                                                                            "status"])):
+                if (self.static.POSTGRES_VERSION in 
+                    subprocess.check_output(["/usr/sbin/service", "postgresql", "status"])):
                     return True
                 else:
                     return False
             except subprocess.CalledProcessError as e:
+                raw = "Returned error code: {0}, and output: {1}"
                 self.exception_helper.print(e, "Postgres isn't running", 
-                                            "Returned error code: {0}, and output: {1}".format(e.returncode, e.output))
+                                            raw.format(e.returncode, e.output))
                 return False
 
 
