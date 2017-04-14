@@ -32,6 +32,7 @@ class DB_Comment_Frequency:
         self.exception_helper = ExceptionHelper(log_time=True, std_stream=sys.stderr)
 
         ## Init the DB
+        kwargs["suppress_greeting"] = True
         self.db_controller = DB_Controller(**kwargs)
         self.db = self.db_controller.db
 

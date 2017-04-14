@@ -39,6 +39,7 @@ from utilities import Utilities
 from scraper import Scraper
 from db_controller import DB_Controller
 from exception_helper import ExceptionHelper
+from db_comment_frequency import DB_Comment_Frequency
 from flair_scraper import FlairScraper
 
 
@@ -82,6 +83,8 @@ class RF1_Stats_Bot:
             print(self.pid)
         elif(kwargs.get("rows", False)):
             print(self._get_row_count(**kwargs))
+        elif(kwargs.get("hourly_frequency", False)):
+            self._start_hourly_frequency(**kwargs)
         elif(kwargs.get("flair_scraper", False)):
             self._start_flair_scraper(**kwargs)
         else:
@@ -152,6 +155,10 @@ class RF1_Stats_Bot:
         return DB_Controller(**kwargs).count_rows()
 
 
+    def _start_hourly_frequency(self, **kwargs):
+        DB_Comment_Frequency(**kwargs)
+
+
     def _start_flair_scraper(self, **kwargs):
         FlairScraper(**kwargs)
 
@@ -218,13 +225,16 @@ class RF1_Stats_Bot:
 @click.option("--restart", is_flag=True, help="Restarts the scraper")
 @click.option("--status", is_flag=True, help="A more human readable --pid")
 @click.option("--overwrite", is_flag=True, help="Overwrites any existing files when outputting {0}".format(FlairScraper.FLAIR_JSON_NAME))
+@click.option("--hourly-frequency", is_flag=True, help="Starts the hourly comment frequency script (db_comment_frequency)")
+@click.option("--append", "-a", is_flag=True, help="Choose to only append the most recent comments using the hourly comment frequency script, rather than the whole comments table.")
 @click.option("--flair-scraper", is_flag=True, help="Starts the flair scraper")
 @click.option("--pid", "-p", is_flag=True, help="Shows the pid of the scraper process")
 @click.option("--remote", "-r", is_flag=True, help="Denotes whether or not the scraper is accessing the database remotely (using {0} instead of {1})".format(DB_Controller.REMOTE_DB_CFG_NAME, DB_Controller.DB_CFG_NAME))
 @click.option("--rows", is_flag=True, help="Gets a count of the rows currently stored in the database")
-def main(start, quiet, stop, restart, status, overwrite, flair_scraper, pid, remote, rows):
+def main(start, quiet, stop, restart, status, overwrite, hourly_frequency, append, flair_scraper, pid, remote, rows):
     kwargs = {
         "start": start, "quiet": quiet, "stop": stop, "restart": restart, "status": status,
+        "append": append, "hourly_frequency": hourly_frequency,
         "flair_scraper": flair_scraper, "pid": pid, "remote": remote, "rows": rows
     }
 
