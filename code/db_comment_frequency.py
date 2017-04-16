@@ -140,9 +140,9 @@ class DB_Comment_Frequency:
         if(not table):
             table = self.static.HOURLY_DB_TABLE
 
-        self.db.insert_row(self.static.HOURLY_COLUMNS, 
-                           [flair_frequency[0], flair_frequency[1], start_epoch], 
-                           self.static.HOURLY_DB_TABLE)
+        self.db_controller.insert_row(self.static.HOURLY_COLUMNS, 
+                                      [flair_frequency[0], flair_frequency[1], start_epoch], 
+                                      self.static.HOURLY_DB_TABLE)
 
 
 @click.command()
