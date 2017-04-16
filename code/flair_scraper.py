@@ -197,8 +197,6 @@ class FlairScraper:
 def main(overwrite, json):
     kwargs = {"overwrite": overwrite, "json":json}
 
-    kwargs["remote"] = True
-
     ## Init the flair scraper
     FlairScraper(**kwargs)
 

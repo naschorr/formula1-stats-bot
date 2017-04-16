@@ -75,7 +75,7 @@ class DB_Controller:
             values_str = ', '.join(["%s"] * len(values))
             raw =  "INSERT INTO {0} ({1}) VALUES ({2});"
             try:
-                cursor.execute(raw.format(table, columns_str, values_str), (*values,))
+                cursor.execute(raw.format(table, columns_str, values_str), values)
             except psycopg2.IntegrityError as e:
                 self.exception_helper.print(e, "Primary key integrity error.\n")
                 self.db.rollback()
