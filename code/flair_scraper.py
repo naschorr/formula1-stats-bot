@@ -7,10 +7,12 @@ import sys
 import json
 import time
 import click
-try:
+if (sys.version_info[0] >= 3):
     from html.parser import HTMLParser
-except ImportError:
+else:
     from HTMLParser import HTMLParser
+
+from db_controller import DB_Controller
 
 
 class FlairTableParser(HTMLParser):
@@ -73,10 +75,8 @@ class FlairTableParser(HTMLParser):
 
 
 class FlairScraper:
-    ## Literals
-    FLAIRS = "flairs"
-
     ## Globals
+    FLAIRS = "flairs"
     FLAIR_TABLE_NAME = "flair_table.html"
     FLAIR_JSON_NAME = "flairs.json"
     FLAIR_URL_SOURCE = "https://www.reddit.com/r/formula1/"
@@ -95,6 +95,17 @@ class FlairScraper:
     FLAIR_TABLE_PATH = Utilities.build_path_from_config(FLAIR_TABLE_NAME)
     FLAIR_JSON_PATH = Utilities.build_path_from_config(FLAIR_JSON_NAME)
 
+    ## Flairs Table Config
+    FLAIRS_TABLE = "flairs"
+    FLAIRS_COLUMNS = ["flair"]
+
+    ## Flairs table creation:
+    """
+    CREATE TABLE flairs (
+        flair text PRIMARY KEY NOT NULL
+    );
+    """
+
     def __init__(self, **kwargs):
         ## Alias FlairScraper into 'static'. Just a bit less typing
         self.static = FlairScraper
@@ -102,8 +113,9 @@ class FlairScraper:
         ## Handle the args
         self.overwrite = kwargs.get("overwrite")
 
-        ## Init the parser and start reading data into it
+        ## Init the parser and db
         parser = FlairTableParser()
+        self.db = DB_Controller(**kwargs)
 
         ## Feed the open flair table containing html into the parser
         parser.feed(self.open_flair_editor_html(self.static.FLAIR_URL_SOURCE))
@@ -111,17 +123,20 @@ class FlairScraper:
         ## Get a sorted list of the flairs
         self.flairs = sorted(parser.flairs)
 
-        ## Try to save the flairs in a json file
-        json_dumps_kwargs = {"indent": 4, "ensure_ascii": False}
-        try:
-            self.save_flair_json(self.static.FLAIR_JSON_PATH, self.overwrite, **json_dumps_kwargs)
-        except Exception as e:
-            print("Exception while saving {0} to {1}:\n".format(FlairScraper.FLAIR_JSON_NAME, self.static.FLAIR_JSON_PATH), e, flush=True)
-            return
+        if(kwargs.get("json")):
+            json_dumps_kwargs = {"indent": 4, "ensure_ascii": False}
+            try:
+                self.save_flair_json(self.static.FLAIR_JSON_PATH, self.overwrite, **json_dumps_kwargs)
+            except Exception as e:
+                print("Exception while saving {0} to {1}:\n".format(FlairScraper.FLAIR_JSON_NAME, self.static.FLAIR_JSON_PATH), e, flush=True)
+                return
+            else:
+                ## If the save was successful, print the encoded json
+                print(FlairScraper.FLAIR_JSON_NAME, "output:")
+                print(json.dumps({self.static.FLAIRS: self.flairs}, **json_dumps_kwargs), flush=True)
         else:
-            ## If the save was successful, print the encoded json
-            print(FlairScraper.FLAIR_JSON_NAME, "output:")
-            print(json.dumps({self.static.FLAIRS: self.flairs}, **json_dumps_kwargs), flush=True)
+            self.save_flair_db()
+
 
     ## Methods
 
@@ -171,11 +186,21 @@ class FlairScraper:
             json.dump({self.static.FLAIRS: self.flairs}, flair_file, **kwargs)
 
 
+    def save_flair_db(self):
+        for flair in self.flairs:
+            self.db.insert_row(self.static.FLAIRS_COLUMNS, [flair], self.static.FLAIRS_TABLE)
+
+
 @click.command()
 @click.option("--overwrite", "-o", is_flag=True, help="Overwrites any existing files when outputting {0}".format(FlairScraper.FLAIR_JSON_NAME))
-def main(overwrite):
+@click.option("--json", is_flag=True, help="Saves scraped flairs into a json file rather than the database")
+def main(overwrite, json):
+    kwargs = {"overwrite": overwrite, "json":json}
+
+    kwargs["remote"] = True
+
     ## Init the flair scraper
-    FlairScraper(overwrite=overwrite)
+    FlairScraper(**kwargs)
 
 
 if __name__ == '__main__':

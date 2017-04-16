@@ -12,6 +12,7 @@ class DB_Comment_Frequency:
     ## Literals
     MAIN_DB_TABLE = "comments"
     HOURLY_DB_TABLE = "hourly_flair_frequency"
+    HOURLY_COLUMNS = ["flair", "frequency", "time_of"]
     APPEND_ARG = "append"
 
     ## Precomputes the hourly flair frequency of the comments, and stores them
@@ -42,6 +43,7 @@ class DB_Comment_Frequency:
         else:
             start = self.get_first_time_created()
 
+        ## Reconfigure for different time steps
         ## Start getting hour data and inserting into the table
         hour_generator = self.generate_hourly_seconds_range(start,
                                                             self.get_last_time_created())
@@ -138,25 +140,9 @@ class DB_Comment_Frequency:
         if(not table):
             table = self.static.HOURLY_DB_TABLE
 
-        ## Stage changes to the db
-        with self.db.cursor() as cursor:
-            raw =  """INSERT INTO {0} (id, flair, frequency, time_of)
-                      VALUES (DEFAULT, %s, %s, %s);"""
-
-            for flair_frequency in flair_frequencies:
-                try:
-                    cursor.execute(raw.format(table), (flair_frequency[0],
-                                                       flair_frequency[1],
-                                                       start_epoch))
-                except Exception as e:
-                    self.exception_helper.print(e, "Unexpected error when storing flair_frequency into the database.\n", exit=True)
-                else:
-
-                    ## Commit changes to the db
-                    try:
-                        self.db.commit()
-                    except Exception as e:
-                        self.exception_helper.print(e, "Unexpected error when committing changes to the database.\n", exit=True)
+        self.db.insert_row(self.static.HOURLY_COLUMNS, 
+                           [flair_frequency[0], flair_frequency[1], start_epoch], 
+                           self.static.HOURLY_DB_TABLE)
 
 
 @click.command()

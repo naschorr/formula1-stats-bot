@@ -19,9 +19,12 @@ class Scraper:
     ## Globals
     REDDIT_CFG_NAME = "reddit.json"
     REDDIT_CFG_PATH = Utilities.build_path_from_config(REDDIT_CFG_NAME)
+    COMMENTS_TABLE = "comments"
+    COMMENTS_COLUMNS = ["post_id", "author", "time_created", "flair", "body"]
+
 
     def __init__(self, db_controller=None, **kwargs):
-        static = Scraper
+        self.static = Scraper
 
         ## Init the exception helper
         self.exception_helper = ExceptionHelper(log_time=True, std_stream=sys.stderr)
@@ -31,7 +34,7 @@ class Scraper:
         self._attempts = 0
 
         ## Get the config data for the reddit instance
-        self.reddit_cfg = Utilities.load_json(static.REDDIT_CFG_PATH)
+        self.reddit_cfg = Utilities.load_json(self.static.REDDIT_CFG_PATH)
 
         ## Get Reddit instance
         try:
@@ -61,7 +64,7 @@ class Scraper:
 
     def stream_comments(self):
         for comment in self.subreddit.stream.comments():
-            self.parse_comment(comment, self.db.store_comment)
+            self.parse_comment(comment, self.store_comment)
 
 
     def parse_comment(self, praw_comment, callback):
@@ -73,6 +76,14 @@ class Scraper:
                                   praw_comment.body)
             if(callback):
                 callback(comment_obj)
+
+
+    def store_comment(self, comment_obj):
+        self.db.insert_row( self.static.COMMENTS_COLUMNS,
+                            [comment_obj.id.id, comment_obj.author,
+                                comment_obj.time, comment_obj.flair, comment_obj.text],
+                            self.static.COMMENTS_TABLE,
+                            comment_obj.dump)
 
 
 @click.command()

@@ -12,6 +12,8 @@ class DB_Byte_String_Fixer:
     MAIN_DB_TABLE = "comments"
     ALT_DB_TABLE = "invalid_comments"
 
+    COMMENTS_ID = "post_id"
+
     ## Windows versions of scraper.py stored some improperly formatted strings
     ## (Python byte strings) in the 'comments' table. I moved the byte strings
     ## into a table with an idential schema to 'comments' called 
@@ -84,7 +86,7 @@ class DB_Byte_String_Fixer:
         comment_obj = Comment(record[0], record[1], record[2], flair, body)
 
         try:
-            self.db_controller.delete_row(comment_obj.id.id, self.static.ALT_DB_TABLE)
+            self.db_controller.delete_row(self.static.COMMENTS_ID, comment_obj.id.id, self.static.ALT_DB_TABLE)
             self.db_controller.store_comment(comment_obj)
         except Exception as e:
             self.exception_helper.print(e, "Unexpected error when moving comments between tables.\n", exit=True)

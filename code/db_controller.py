@@ -65,20 +65,17 @@ class DB_Controller:
             return cursor.fetchone()[0]
 
 
-    def store_comment(self, comment_obj, table=None):
-        if(not table):
-            table = self.table
+    def insert_row(self, columns, values, table, callback=None):
+        if(len(columns) != len(values)):
+            raise RuntimeError("Unequal number of columns and values. Exiting.")
 
         ## Stage changes to the db
         with self.db.cursor() as cursor:
-            raw =  """INSERT INTO {0} (post_id, author, time_created, flair,
-                      body) VALUES (%s, %s, %s, %s, %s);"""
+            columns_str = ', '.join(columns)
+            values_str = ', '.join(["%s"] * len(values))
+            raw =  "INSERT INTO {0} ({1}) VALUES ({2});"
             try:
-                cursor.execute(raw.format(table), (comment_obj.id.id,
-                                                   comment_obj.author,
-                                                   comment_obj.time,
-                                                   comment_obj.flair,
-                                                   comment_obj.text))
+                cursor.execute(raw.format(table, columns_str, values_str), (*values,))
             except psycopg2.IntegrityError as e:
                 self.exception_helper.print(e, "Primary key integrity error.\n")
                 self.db.rollback()
@@ -92,20 +89,16 @@ class DB_Controller:
                 except Exception as e:
                     self.exception_helper.print(e, "Unexpected error when committing changes to the database.\n", exit=True)
                 else:
+                    if(callback):
+                        callback()
 
-                    ## Output the successfully added comment
-                    comment_obj.dump()
 
-
-    def delete_row(self, post_id, table=None):
-        if(not table):
-            table = self.table
-
+    def delete_row(self, column, value, table, callback=None):
         ## Stage changes to the db
         with self.db.cursor() as cursor:
-            raw = "DELETE FROM {0} WHERE post_id = %s;"
+            raw = "DELETE FROM {0} WHERE {1} = %s;"
             try:
-                cursor.execute(raw.format(table), (post_id,))
+                cursor.execute(raw.format(table, column), (value,))
             except Exception as e:
                 self.exception_helper.print(e, "Unexpected error when removing row with post_id: {0} from the database.\n".format(post_id), exit=True)
             else:
@@ -115,3 +108,6 @@ class DB_Controller:
                     self.db.commit()
                 except Exception as e:
                     self.exception_helper.print(e, "Unexpected error when committing changes to the database.\n", exit=True)
+                else:
+                    if(callback):
+                        callback()

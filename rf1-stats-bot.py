@@ -224,6 +224,7 @@ class RF1_Stats_Bot:
 @click.option("--stop", is_flag=True, help="Stops the scraper process")
 @click.option("--restart", is_flag=True, help="Restarts the scraper")
 @click.option("--status", is_flag=True, help="A more human readable --pid")
+@click.option("--json", is_flag=True, help="Saves scraped flairs into a json file rather than the database")
 @click.option("--overwrite", is_flag=True, help="Overwrites any existing files when outputting {0}".format(FlairScraper.FLAIR_JSON_NAME))
 @click.option("--hourly-frequency", is_flag=True, help="Starts the hourly comment frequency script (db_comment_frequency)")
 @click.option("--append", "-a", is_flag=True, help="Choose to only append the most recent comments using the hourly comment frequency script, rather than the whole comments table.")
@@ -231,11 +232,12 @@ class RF1_Stats_Bot:
 @click.option("--pid", "-p", is_flag=True, help="Shows the pid of the scraper process")
 @click.option("--remote", "-r", is_flag=True, help="Denotes whether or not the scraper is accessing the database remotely (using {0} instead of {1})".format(DB_Controller.REMOTE_DB_CFG_NAME, DB_Controller.DB_CFG_NAME))
 @click.option("--rows", is_flag=True, help="Gets a count of the rows currently stored in the database")
-def main(start, quiet, stop, restart, status, overwrite, hourly_frequency, append, flair_scraper, pid, remote, rows):
+def main(start, quiet, stop, restart, status, json, overwrite, hourly_frequency, append, flair_scraper, pid, remote, rows):
     kwargs = {
         "start": start, "quiet": quiet, "stop": stop, "restart": restart, "status": status,
-        "append": append, "hourly_frequency": hourly_frequency,
-        "flair_scraper": flair_scraper, "pid": pid, "remote": remote, "rows": rows
+        "overwrite": overwrite, "json": json, "append": append,
+        "hourly_frequency": hourly_frequency, "flair_scraper": flair_scraper, "pid": pid,
+        "remote": remote, "rows": rows
     }
 
     RF1_Stats_Bot(**kwargs)
