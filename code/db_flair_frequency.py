@@ -8,56 +8,56 @@ from comment import Comment
 from exception_helper import ExceptionHelper
 
 
-class DB_Comment_Frequency:
+class DB_Flair_Frequency:
     ## Literals
     MAIN_DB_TABLE = "comments"
     HOURLY_DB_TABLE = "hourly_flair_frequency"
     HOURLY_COLUMNS = ["flair", "frequency", "time_of"]
     APPEND_ARG = "append"
+    NO_FLAIR_STR = "no_flair"
 
     ## Precomputes the hourly flair frequency of the comments, and stores them
     ## into a new table created with:
     """
     CREATE TABLE hourly_flair_frequency (
-        id serial PRIMARY KEY,
         flair text NOT NULL,
         frequency integer NOT NULL,
-        time_of integer NOT NULL
+        time_of integer NOT NULL,
+        PRIMARY KEY (flair, time_of)
     );
     """
 
     def __init__(self, **kwargs):
-        self.static = DB_Comment_Frequency
+        self.static = DB_Flair_Frequency
 
         ## Init the exception helper
         self.exception_helper = ExceptionHelper(log_time=True, std_stream=sys.stderr)
 
         ## Init the DB
-        kwargs["suppress_greeting"] = True
-        self.db_controller = DB_Controller(**kwargs)
+        self.db_controller = DB_Controller(**kwargs, suppress_greeting=True)
         self.db = self.db_controller.db
 
         ## Check and see if this should be ran in append mode -- adjust start accordinly
-        if(kwargs.get(self.static.APPEND_ARG, False)):
-            start = self.get_last_frequency_time()
+        self.append = kwargs.get(self.static.APPEND_ARG, False)
+        if(self.append):
+            start = self.get_last_frequency_time(self.static.HOURLY_DB_TABLE)
         else:
-            start = self.get_first_time_created()
+            start = self.get_first_time_created(self.static.MAIN_DB_TABLE)
 
         ## Reconfigure for different time steps
         ## Start getting hour data and inserting into the table
-        hour_generator = self.generate_hourly_seconds_range(start,
-                                                            self.get_last_time_created())
+        hour_generator = self.generate_hourly_seconds_range(start, self.get_last_time_created(self.static.MAIN_DB_TABLE))
+
+        print("START", start, self.get_last_time_created(self.static.MAIN_DB_TABLE))
+
         previous = next(hour_generator)
         for current in hour_generator:
-            flair_frequencies = self.get_flair_frequency_between_epoch(previous, current)
-            self.store_flair_frequencies(previous, flair_frequencies)
+            flair_frequencies = self.get_flair_frequency_between_epoch(previous, current, self.static.MAIN_DB_TABLE)
+            self.store_flair_frequencies(previous, flair_frequencies, self.static.HOURLY_DB_TABLE)
             previous = current
 
 
-    def get_first_time_created(self, table=None):
-        if(not table):
-            table = self.static.MAIN_DB_TABLE
-
+    def get_first_time_created(self, table):
         with self.db.cursor() as cursor:
             raw = """SELECT time_created FROM {0}
                      ORDER BY time_created ASC LIMIT 1;"""
@@ -70,10 +70,7 @@ class DB_Comment_Frequency:
                 return cursor.fetchone()[0]
 
 
-    def get_last_time_created(self, table=None):
-        if(not table):
-            table = self.static.MAIN_DB_TABLE
-
+    def get_last_time_created(self, table):
         with self.db.cursor() as cursor:
             raw = """SELECT time_created FROM {0}
                      ORDER BY time_created DESC LIMIT 1;"""
@@ -86,10 +83,7 @@ class DB_Comment_Frequency:
                 return cursor.fetchone()[0]
 
 
-    def get_last_frequency_time(self, table=None):
-        if(not table):
-            table = self.static.HOURLY_DB_TABLE
-
+    def get_last_frequency_time(self, table):
         with self.db.cursor() as cursor:
             raw = """SELECT time_of FROM {0}
                      ORDER BY time_of DESC LIMIT 1;"""
@@ -103,7 +97,11 @@ class DB_Comment_Frequency:
                 try:
                     return cursor.fetchone()[0]
                 except TypeError as e:
-                    self.exception_helper.print(e, "TypeError when getting most recent time_of row from the database. Try without 'append' mode.\n", exit=True)
+                    if(self.append):
+                        self.exception_helper.print(e, "TypeError when getting most recent time_of row from the database. Assuming empty table.\n")
+                        return 0
+                    else:
+                        self.exception_helper.print(e, "TypeError when getting most recent time_of row from the database.\n", exit=True)
                 except Exception as e:
                     self.exception_helper.print(e, "Unexpected error when getting most recent time_of row from the database.\n", exit=True)
 
@@ -118,10 +116,7 @@ class DB_Comment_Frequency:
             yield index
 
 
-    def get_flair_frequency_between_epoch(self, start, end, table=None):
-        if(not table):
-            table = self.static.MAIN_DB_TABLE
-
+    def get_flair_frequency_between_epoch(self, start, end, table):
         with self.db.cursor() as cursor:
             raw = """SELECT flair, count(flair) as frequency FROM {0}
                      WHERE time_created BETWEEN %s AND %s
@@ -136,13 +131,16 @@ class DB_Comment_Frequency:
                 return cursor.fetchall()
 
 
-    def store_flair_frequencies(self, start_epoch, flair_frequencies, table=None):
-        if(not table):
-            table = self.static.HOURLY_DB_TABLE
-
+    def store_flair_frequencies(self, epoch, flair_frequencies, table):
+        print("STORING", epoch, flair_frequencies)
         for flair_frequency in flair_frequencies:
             self.db_controller.insert_row(self.static.HOURLY_COLUMNS, 
-                                          [flair_frequency[0], flair_frequency[1], start_epoch], 
+                                          [flair_frequency[0], flair_frequency[1], epoch], 
+                                          self.static.HOURLY_DB_TABLE)
+        else:
+            print("ZERO STORE", epoch)
+            self.db_controller.insert_row(self.static.HOURLY_COLUMNS,
+                                          [self.static.NO_FLAIR_STR, 0, epoch],
                                           self.static.HOURLY_DB_TABLE)
 
 
@@ -151,9 +149,9 @@ class DB_Comment_Frequency:
               help="Denotes whether or not the comment frequency mover is accessing the database remotely (using {0} instead of {1})".format(DB_Controller.REMOTE_DB_CFG_NAME, DB_Controller.DB_CFG_NAME))
 @click.option("--append", "-a", is_flag=True, help="Choose to only append the most recent comments into the flair frequency table, rather than the whole comments table.")
 def main(remote, append):
-    kwargs = {"remote": remote, DB_Comment_Frequency.APPEND_ARG: append}
+    kwargs = {"remote": remote, DB_Flair_Frequency.APPEND_ARG: append}
 
-    DB_Comment_Frequency(**kwargs)
+    DB_Flair_Frequency(**kwargs)
 
 
 if __name__ == "__main__":

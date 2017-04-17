@@ -39,7 +39,7 @@ from utilities import Utilities
 from scraper import Scraper
 from db_controller import DB_Controller
 from exception_helper import ExceptionHelper
-from db_comment_frequency import DB_Comment_Frequency
+from db_flair_frequency import DB_Flair_Frequency
 from flair_scraper import FlairScraper
 
 
@@ -156,7 +156,7 @@ class RF1_Stats_Bot:
 
 
     def _start_hourly_frequency(self, **kwargs):
-        DB_Comment_Frequency(**kwargs)
+        DB_Flair_Frequency(**kwargs)
 
 
     def _start_flair_scraper(self, **kwargs):
@@ -226,7 +226,7 @@ class RF1_Stats_Bot:
 @click.option("--status", is_flag=True, help="A more human readable --pid")
 @click.option("--json", is_flag=True, help="Saves scraped flairs into a json file rather than the database")
 @click.option("--overwrite", is_flag=True, help="Overwrites any existing files when outputting {0}".format(FlairScraper.FLAIR_JSON_NAME))
-@click.option("--hourly-frequency", is_flag=True, help="Starts the hourly comment frequency script (db_comment_frequency)")
+@click.option("--hourly-frequency", is_flag=True, help="Starts the hourly comment frequency script (db_flair_frequency)")
 @click.option("--append", "-a", is_flag=True, help="Choose to only append the most recent comments using the hourly comment frequency script, rather than the whole comments table.")
 @click.option("--flair-scraper", is_flag=True, help="Starts the flair scraper")
 @click.option("--pid", "-p", is_flag=True, help="Shows the pid of the scraper process")
