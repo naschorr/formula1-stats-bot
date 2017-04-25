@@ -36,7 +36,8 @@ class DB_Flair_Frequency:
         self.exception_helper = ExceptionHelper(log_time=True, std_stream=sys.stderr)
 
         ## Init the DB
-        self.db_controller = DB_Controller(**kwargs, suppress_greeting=True)
+        kwargs["suppress_greeting"] = True
+        self.db_controller = DB_Controller(**kwargs)
         self.db = self.db_controller.db
 
         ## Check and see if this should be ran in append mode -- adjust start accordinly
