@@ -1,7 +1,8 @@
-from __future__ import print_function
+from __future__ import print_function, division
 
 import sys
 import click
+import math
 
 from db_controller import DB_Controller
 from comment import Comment
@@ -12,7 +13,7 @@ class DB_Flair_Frequency:
     ## Literals
     MAIN_DB_TABLE = "comments"
     HOURLY_DB_TABLE = "hourly_flair_frequency"
-    HOURLY_COLUMNS = ["flair", "frequency", "time_of"]
+    HOURLY_COLUMNS = ["flair", "frequency", "percentage", "time_of"]
     APPEND_ARG = "append"
     NO_FLAIR_STR = "no_flair"
 
@@ -22,6 +23,7 @@ class DB_Flair_Frequency:
     CREATE TABLE hourly_flair_frequency (
         flair text NOT NULL,
         frequency integer NOT NULL,
+        percentage real NOT NULL,
         time_of integer NOT NULL,
         PRIMARY KEY (flair, time_of)
     );
@@ -48,11 +50,10 @@ class DB_Flair_Frequency:
         ## Start getting hour data and inserting into the table
         hour_generator = self.generate_hourly_seconds_range(start, self.get_last_time_created(self.static.MAIN_DB_TABLE))
 
-        print("START", start, self.get_last_time_created(self.static.MAIN_DB_TABLE))
-
         previous = next(hour_generator)
         for current in hour_generator:
             flair_frequencies = self.get_flair_frequency_between_epoch(previous, current, self.static.MAIN_DB_TABLE)
+            flair_frequencies = self.build_percentage_from_flair_frequencies(flair_frequencies)
             self.store_flair_frequencies(previous, flair_frequencies, self.static.HOURLY_DB_TABLE)
             previous = current
 
@@ -131,16 +132,35 @@ class DB_Flair_Frequency:
                 return cursor.fetchall()
 
 
+    def build_percentage_from_flair_frequencies(self, flair_frequencies):
+        ## https://code.activestate.com/recipes/578114-round-number-to-specified-number-of-significant-di/
+        def round_sigfigs(num, sigfigs):
+            if(num != 0):
+                return round(num, -int(math.floor(math.log10(abs(num))) - (sigfigs - 1)))
+            else:
+                return 0
+
+        total = 0
+        for flair_frequency in flair_frequencies:
+            total += flair_frequency[1]
+        
+        for index, flair_frequency in enumerate(flair_frequencies):
+            ## List conversion to get around tuple-immutability
+            flair_frequency_list = list(flair_frequency)
+            flair_frequency_list.append(round_sigfigs(flair_frequency[1] / total, 3));
+            flair_frequencies[index] = tuple(flair_frequency_list)
+
+        return flair_frequencies
+
     def store_flair_frequencies(self, epoch, flair_frequencies, table):
-        print("STORING", epoch, flair_frequencies)
         for flair_frequency in flair_frequencies:
             self.db_controller.insert_row(self.static.HOURLY_COLUMNS, 
-                                          [flair_frequency[0], flair_frequency[1], epoch], 
+                                          [flair_frequency[0], flair_frequency[1],
+                                           flair_frequency[2], epoch],
                                           self.static.HOURLY_DB_TABLE)
         else:
-            print("ZERO STORE", epoch)
             self.db_controller.insert_row(self.static.HOURLY_COLUMNS,
-                                          [self.static.NO_FLAIR_STR, 0, epoch],
+                                          [self.static.NO_FLAIR_STR, 0, 0, epoch],
                                           self.static.HOURLY_DB_TABLE)
 
 
