@@ -13,7 +13,7 @@ class DB_Flair_Frequency:
     ## Literals
     MAIN_DB_TABLE = "comments"
     HOURLY_DB_TABLE = "hourly_flair_frequency"
-    HOURLY_COLUMNS = ["flair", "frequency", "percentage", "time_of"]
+    HOURLY_COLUMNS = ["flair", "frequency", "percentage", "unique_frequency", "unique_percentage", "time_of"]
     APPEND_ARG = "append"
     NO_FLAIR_STR = "no_flair"
 
@@ -24,6 +24,8 @@ class DB_Flair_Frequency:
         flair text NOT NULL,
         frequency integer NOT NULL,
         percentage real NOT NULL,
+        unique_frequency integer NOT NULL,
+        unique_percentage real NOT NULL,
         time_of integer NOT NULL,
         PRIMARY KEY (flair, time_of)
     );
@@ -40,7 +42,7 @@ class DB_Flair_Frequency:
         self.db_controller = DB_Controller(**kwargs)
         self.db = self.db_controller.db
 
-        ## Check and see if this should be ran in append mode -- adjust start accordinly
+        ## Check and see if thisTuple should be ran in append mode -- adjust start accordinly
         self.append = kwargs.get(self.static.APPEND_ARG, False)
         if(self.append):
             start = self.get_last_frequency_time(self.static.HOURLY_DB_TABLE)
@@ -53,16 +55,23 @@ class DB_Flair_Frequency:
 
         previous = next(hour_generator)
         for current in hour_generator:
-            flair_frequencies = self.get_flair_frequency_between_epoch(previous, current, self.static.MAIN_DB_TABLE)
-            flair_frequencies = self.build_percentage_from_flair_frequencies(flair_frequencies)
-            self.store_flair_frequencies(previous, flair_frequencies, self.static.HOURLY_DB_TABLE)
+            raw_flair_frequencies = self.get_flair_frequency_between_epoch(previous, current, self.static.MAIN_DB_TABLE)
+            raw_unique_flair_frequencies = self.get_unique_flair_frequency_between_epoch(previous, current, self.static.MAIN_DB_TABLE)
+
+            flair_frequencies = self.build_percentage_from_flair_frequencies(raw_flair_frequencies)
+            unique_flair_frequencies = self.build_percentage_from_flair_frequencies(raw_unique_flair_frequencies)
+
+            merged = self.merge_flair_frequencies(flair_frequencies, unique_flair_frequencies)
+
+            self.store_flair_frequencies(previous, merged, self.static.HOURLY_DB_TABLE)
+
             previous = current
 
 
     def get_first_time_created(self, table):
         with self.db.cursor() as cursor:
-            raw = """SELECT time_created FROM {0}
-                     ORDER BY time_created ASC LIMIT 1;"""
+            raw =    """SELECT time_created FROM {0}
+                        ORDER BY time_created ASC LIMIT 1;"""
 
             try:
                 cursor.execute(raw.format(table))
@@ -74,8 +83,8 @@ class DB_Flair_Frequency:
 
     def get_last_time_created(self, table):
         with self.db.cursor() as cursor:
-            raw = """SELECT time_created FROM {0}
-                     ORDER BY time_created DESC LIMIT 1;"""
+            raw =    """SELECT time_created FROM {0}
+                        ORDER BY time_created DESC LIMIT 1;"""
 
             try:
                 cursor.execute(raw.format(table))
@@ -87,8 +96,8 @@ class DB_Flair_Frequency:
 
     def get_last_frequency_time(self, table):
         with self.db.cursor() as cursor:
-            raw = """SELECT time_of FROM {0}
-                     ORDER BY time_of DESC LIMIT 1;"""
+            raw =    """SELECT time_of FROM {0}
+                        ORDER BY time_of DESC LIMIT 1;"""
 
             try:
                 cursor.execute(raw.format(table))
@@ -120,15 +129,35 @@ class DB_Flair_Frequency:
 
     def get_flair_frequency_between_epoch(self, start, end, table):
         with self.db.cursor() as cursor:
-            raw = """SELECT flair, count(flair) as frequency FROM {0}
-                     WHERE time_created BETWEEN %s AND %s
-                     GROUP BY flair
-                     ORDER BY COUNT(flair) DESC;"""
+            raw =    """SELECT flair, count(flair) as frequency FROM {0}
+                        WHERE time_created BETWEEN %s AND %s
+                        GROUP BY flair
+                        ORDER BY COUNT(flair) DESC;"""
 
             try:
                 cursor.execute(raw.format(table), (start, end))
             except Exception as e:
-                self.exception_helper.print(e, "Unexpected error when loading comments from between two epochs.\n", exit=True)
+                self.exception_helper.print(e, "Unexpected error when loading flair frequencies from between two epochs.\n", exit=True)
+            else:
+                return cursor.fetchall()
+
+
+    def get_unique_flair_frequency_between_epoch(self, start, end, table):
+        with self.db.cursor() as cursor:
+            raw =    """SELECT DISTINCT ON (flair) flair, COUNT(flair) as frequency
+                        FROM (
+                            SELECT DISTINCT ON (author) flair
+                            FROM {0}
+                            WHERE time_created BETWEEN %s AND %s
+                            GROUP BY author, flair
+                        ) distinct_authors
+                        GROUP BY flair
+                        ORDER BY flair ASC, frequency DESC;"""
+
+            try:
+                cursor.execute(raw.format(table), (start, end))
+            except Exception as e:
+                self.exception_helper.print(e, "Unexpected error when loading unqiue flair frequencies from between two epochs.\n", exit=True)
             else:
                 return cursor.fetchall()
 
@@ -153,15 +182,46 @@ class DB_Flair_Frequency:
 
         return flair_frequencies
 
+
+    def merge_flair_frequencies(self, flair_frequencies, unique_flair_frequencies):
+        def find_tuple(key, index, tuples):
+            counter = 0
+            foundTuple = False
+            while(counter < len(tuples) and not foundTuple):
+                thisTuple = tuples[counter]
+                if(thisTuple[index] == key):
+                    foundTuple = thisTuple
+                counter += 1
+
+            return foundTuple, counter
+
+        for index, flair_frequency in enumerate(flair_frequencies):
+            key = flair_frequency[0]
+
+            matched_tuple, tuple_index = find_tuple(key, 0, unique_flair_frequencies)
+            ## del unique_flair_frequencies[tuple_index]
+
+            flair_frequency_list = list(flair_frequency)
+            if(matched_tuple):
+                flair_frequency_list.extend(matched_tuple[1:len(matched_tuple)])
+            else:
+                ## Todo: load constant multiplier from somwhere else
+                flair_frequency_list.extend([0] * 2)
+            flair_frequencies[index] = tuple(flair_frequency_list)
+
+        return flair_frequencies
+
+
     def store_flair_frequencies(self, epoch, flair_frequencies, table):
         for flair_frequency in flair_frequencies:
             self.db_controller.insert_row(self.static.HOURLY_COLUMNS, 
                                           [flair_frequency[0], flair_frequency[1],
-                                           flair_frequency[2], epoch],
+                                           flair_frequency[2], flair_frequency[3],
+                                           flair_frequency[4], epoch],
                                           self.static.HOURLY_DB_TABLE)
         else:
             self.db_controller.insert_row(self.static.HOURLY_COLUMNS,
-                                          [self.static.NO_FLAIR_STR, 0, 0, epoch],
+                                          [self.static.NO_FLAIR_STR, 0, 0, 0, 0, epoch],
                                           self.static.HOURLY_DB_TABLE)
 
 
@@ -171,6 +231,8 @@ class DB_Flair_Frequency:
 @click.option("--append", "-a", is_flag=True, help="Choose to only append the most recent comments into the flair frequency table, rather than the whole comments table.")
 def main(remote, append):
     kwargs = {"remote": remote, DB_Flair_Frequency.APPEND_ARG: append}
+
+    kwargs["remote"] = True
 
     DB_Flair_Frequency(**kwargs)
 
