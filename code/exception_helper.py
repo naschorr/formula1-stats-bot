@@ -37,9 +37,6 @@ class ExceptionHelper:
         output = ""
         exit = False
 
-        ## Force output buffer flush
-        kwargs["flush"] = True
-
         ## Log the current time if necessary
         if(self.log_time):
             output += "[{0}]".format(self._get_current_time_str())
@@ -60,6 +57,9 @@ class ExceptionHelper:
 
         ## Actual output
         print(output, exception, *args, **kwargs)
+
+        ## Flush the output
+        sys.stdout.flush()
 
         ## Exit if necessary
         if(exit):
