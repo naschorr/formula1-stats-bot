@@ -201,24 +201,27 @@ class DB_Flair_Frequency:
             matched_tuple, tuple_index = find_tuple(key, 0, unique_flair_frequencies)
             ## del unique_flair_frequencies[tuple_index]
 
-            flair_frequency_list = list(flair_frequency)
             if(matched_tuple):
-                flair_frequency_list.extend(matched_tuple[1:len(matched_tuple)])
+                flair_frequency_list = list(flair_frequency)
+                flair_frequency_list.extend(matched_tuple[1:len(matched_tuple)])    # Slice off first element 'flair'
+                flair_frequencies[index] = tuple(flair_frequency_list)
             else:
-                ## Todo: load constant multiplier from somwhere else
-                flair_frequency_list.extend([0] * 2)
-            flair_frequencies[index] = tuple(flair_frequency_list)
+                del flair_frequencies[index]
 
         return flair_frequencies
 
 
     def store_flair_frequencies(self, epoch, flair_frequencies, table):
-        for flair_frequency in flair_frequencies:
-            self.db_controller.insert_row(self.static.HOURLY_COLUMNS, 
-                                          [flair_frequency[0], flair_frequency[1],
-                                           flair_frequency[2], flair_frequency[3],
-                                           flair_frequency[4], epoch],
-                                          self.static.HOURLY_DB_TABLE)
+        if(len(flair_frequencies) > 0):
+            for flair_frequency in flair_frequencies:
+                try:
+                    self.db_controller.insert_row(self.static.HOURLY_COLUMNS, 
+                                                  [flair_frequency[0], flair_frequency[1],
+                                                   flair_frequency[2], flair_frequency[3],
+                                                   flair_frequency[4], epoch],
+                                                  self.static.HOURLY_DB_TABLE)
+                except IndexError as e:
+                    self.exception_helper.print(e, "IndexError when storing flair_frequency. Skipping.")
         else:
             self.db_controller.insert_row(self.static.HOURLY_COLUMNS,
                                           [self.static.NO_FLAIR_STR, 0, 0, 0, 0, epoch],

@@ -56,7 +56,7 @@ class ExceptionHelper:
                 del kwargs["exit"]
 
         ## Actual output
-        print(output, exception, *args, **kwargs)
+        print(output, exception, *args, **kwargs, flush=True)
 
         ## Exit if necessary
         if(exit):
