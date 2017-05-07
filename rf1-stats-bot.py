@@ -192,7 +192,10 @@ class RF1_Stats_Bot:
         if (not self.pid):
             return False
         elif(psutil.pid_exists(self.pid)):
-            return True
+            for arg in psutil.Process(self.pid).cmdline():
+                if("python" in arg):
+                    return True
+            return False
         else:   ## pid file has a pid in it, but no process has that pid
             raw = "Pid in {0}, but no process attached. This shouldn't happen. Cleaning up."
             self.exception_helper.print(None, raw.format(self.static.PID_FILE_PATH))
