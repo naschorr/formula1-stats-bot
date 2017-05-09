@@ -74,7 +74,7 @@ class ExceptionHelper:
 
         ## Determine if alert kwarg is supplied
         if(kwargs.get("alert", False)):
-            self._send_alert("{0} {1}".format(output, exception))
+            self._send_alert("{0} {1}, {2}. ".format(output, exception, " ".join(args)))
             del kwargs["alert"]
 
         ## Actual output
