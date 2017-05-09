@@ -27,7 +27,7 @@ class ExceptionHelper:
     STD_STREAM = "std_stream"
     TIME_FORMAT = "time_format"
     ALERT = "alert"
-    MAIL_TO_SMS_CFG_NAME = "mail.json"
+    MAIL_TO_SMS_CFG_NAME = "mail_to_sms.json"
     MAIL_TO_SMS_CFG_PATH = Utilities.build_path_from_config(MAIL_TO_SMS_CFG_NAME)
 
     ## Globals
