@@ -115,7 +115,7 @@ class RF1_Stats_Bot:
 
         if (self._is_running()):
             raw = "{0} is already running. Exiting."
-            self.exception_helper.print(None, raw.format(self.static.NAME), exit=True, alert=True)
+            self.exception_helper.print(None, raw.format(self.static.NAME), exit=True)
 
         try:
             pid = psutil.Process().pid  ## Pid of this process
