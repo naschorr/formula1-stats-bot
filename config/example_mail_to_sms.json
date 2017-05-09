@@ -1,0 +1,7 @@
+{
+	"_comment": "Rename this file to reddit.json, and adjust the variables accordingly.",
+	"number": "PHONE NUMBER",
+	"carrier": "CARRIER",
+	"username": "USERNAME",
+	"password": "PASSWORD"
+}

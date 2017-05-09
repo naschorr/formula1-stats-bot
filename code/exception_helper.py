@@ -1,8 +1,17 @@
 from __future__ import print_function
 
+## Todo reimplement this whole module and make it not garbage
+
 import sys
 import time
 import traceback
+
+from utilities import Utilities
+try:
+    from mail_to_sms import MailToSMS
+except ImportError as e:
+    MailToSMS = False
+    print("Optional module mail_to_sms not found. SMS alert disabled.", e)
 
 
 class Thread_Tracker:
@@ -17,16 +26,24 @@ class ExceptionHelper:
     LOG_TIME = "log_time"
     STD_STREAM = "std_stream"
     TIME_FORMAT = "time_format"
+    ALERT = "alert"
+    MAIL_TO_SMS_CFG_NAME = "mail.json"
+    MAIL_TO_SMS_CFG_PATH = Utilities.build_path_from_config(MAIL_TO_SMS_CFG_NAME)
 
     ## Globals
     DEFAULT_TIME_FORMAT = "%X %x"
     ATTEMPT_LIMIT = 10
     ATTEMPT_COOLDOWN = 30
     SLEEP_TIME = 10
+    ALERT_DEFAULT = True
+
 
     def __init__(self, **kwargs):
         self.static = ExceptionHelper
 
+        self.mail_to_sms_cfg = Utilities.load_json(self.static.MAIL_TO_SMS_CFG_PATH)
+
+        self.alert_state = kwargs.get(self.static.ALERT, self.static.ALERT_DEFAULT)
         self.log_time = kwargs.get(self.static.LOG_TIME, True)
         self.std_stream = kwargs.get(self.static.STD_STREAM, sys.stdout)
         self.time_format = kwargs.get(self.static.TIME_FORMAT,
@@ -61,6 +78,10 @@ class ExceptionHelper:
         ## Flush the output
         sys.stdout.flush()
 
+
+        if(kwargs.get("alert", False)):
+            self.alert()
+
         ## Exit if necessary
         if(exit):
             self.exit()
@@ -80,6 +101,19 @@ class ExceptionHelper:
 
     def _get_current_time_str(self):
         return time.strftime(self.time_format)
+
+
+    def _send_alert(self, message):
+        if(not MailToSMS or not self.alert_state):
+            return
+
+        cfg = self.mail_to_sms_cfg
+
+        try:
+            MailToSMS(cfg["number"], cfg["carrier"], cfg["username"], cfg["password"], message)
+        except Exception as e:
+            self.print(e, "Unable to send message")
+
 
 
     ## TODO: better word than 'robust'

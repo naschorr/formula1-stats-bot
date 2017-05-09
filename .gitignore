@@ -2,6 +2,7 @@
 config/db.json
 config/remote_db.json
 config/reddit.json
+config/mail_to_sms.json
 
 # Ignore raw flair data
 config/flair_table.html

@@ -44,13 +44,13 @@ class Scraper:
                                       username=self.reddit_cfg["username"],
                                       password=self.reddit_cfg["password"])
         except Exception as e:
-            self.exception_helper.print(e, "Unexpected error when getting Reddit instance.\n", exit=True)
+            self.exception_helper.print(e, "Unexpected error when getting Reddit instance.\n", exit=True, alert=True)
 
         ## Get Subreddit instance
         try:
             self.subreddit = self.reddit.subreddit(self.reddit_cfg["subreddit"])
         except Exception as e:
-            self.exception_helper.print(e, "Unexpected error when getting subreddit instance.\n", exit=True)
+            self.exception_helper.print(e, "Unexpected error when getting subreddit instance.\n", exit=True, alert=True)
 
         ## Save the db_controller, or instantiate it if necessary
         if(not db_controller):

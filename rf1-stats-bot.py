@@ -111,11 +111,11 @@ class RF1_Stats_Bot:
 
     def _start(self, *args, **kwargs):
         if (not kwargs.get("remote", False) and not self._is_postgres_running()):
-            self.exception_helper.print(None, "Postgres isn't running. Exiting.", exit=True)
+            self.exception_helper.print(None, "Postgres isn't running. Exiting.", exit=True, alert=True)
 
         if (self._is_running()):
             raw = "{0} is already running. Exiting."
-            self.exception_helper.print(None, raw.format(self.static.NAME), exit=True)
+            self.exception_helper.print(None, raw.format(self.static.NAME), exit=True, alert=True)
 
         try:
             pid = psutil.Process().pid  ## Pid of this process
@@ -198,7 +198,7 @@ class RF1_Stats_Bot:
             return False
         else:   ## pid file has a pid in it, but no process has that pid
             raw = "Pid in {0}, but no process attached. This shouldn't happen. Cleaning up."
-            self.exception_helper.print(None, raw.format(self.static.PID_FILE_PATH))
+            self.exception_helper.print(None, raw.format(self.static.PID_FILE_PATH), alert=True)
             self._cleanup()
             return False
 

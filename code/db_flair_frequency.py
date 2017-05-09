@@ -76,7 +76,7 @@ class DB_Flair_Frequency:
             try:
                 cursor.execute(raw.format(table))
             except Exception as e:
-                self.exception_helper.print(e, "Unexpected error when getting most recent time_created row from the database.\n", exit=True)
+                self.exception_helper.print(e, "Unexpected error when getting most recent time_created row from the database.\n", exit=True, alert=True)
             else:
                 return cursor.fetchone()[0]
 
@@ -89,7 +89,7 @@ class DB_Flair_Frequency:
             try:
                 cursor.execute(raw.format(table))
             except Exception as e:
-                self.exception_helper.print(e, "Unexpected error when getting most recent time_created row from the database.\n", exit=True)
+                self.exception_helper.print(e, "Unexpected error when getting most recent time_created row from the database.\n", exit=True, alert=True)
             else:
                 return cursor.fetchone()[0]
 
@@ -102,7 +102,7 @@ class DB_Flair_Frequency:
             try:
                 cursor.execute(raw.format(table))
             except Exception as e:
-                self.exception_helper.print(e, "Unexpected error when getting most recent time_created row from the database.\n", exit=True)
+                self.exception_helper.print(e, "Unexpected error when getting most recent time_created row from the database.\n", exit=True, alert=True)
             else:
 
                 try:
@@ -112,9 +112,9 @@ class DB_Flair_Frequency:
                         self.exception_helper.print(e, "TypeError when getting most recent time_of row from the database. Assuming empty table.\n")
                         return 0
                     else:
-                        self.exception_helper.print(e, "TypeError when getting most recent time_of row from the database.\n", exit=True)
+                        self.exception_helper.print(e, "TypeError when getting most recent time_of row from the database.\n", exit=True, alert=True)
                 except Exception as e:
-                    self.exception_helper.print(e, "Unexpected error when getting most recent time_of row from the database.\n", exit=True)
+                    self.exception_helper.print(e, "Unexpected error when getting most recent time_of row from the database.\n", exit=True, alert=True)
 
 
 
@@ -137,7 +137,7 @@ class DB_Flair_Frequency:
             try:
                 cursor.execute(raw.format(table), (start, end))
             except Exception as e:
-                self.exception_helper.print(e, "Unexpected error when loading flair frequencies from between two epochs.\n", exit=True)
+                self.exception_helper.print(e, "Unexpected error when loading flair frequencies from between two epochs.\n", exit=True, alert=True)
             else:
                 return cursor.fetchall()
 
@@ -157,7 +157,7 @@ class DB_Flair_Frequency:
             try:
                 cursor.execute(raw.format(table), (start, end))
             except Exception as e:
-                self.exception_helper.print(e, "Unexpected error when loading unqiue flair frequencies from between two epochs.\n", exit=True)
+                self.exception_helper.print(e, "Unexpected error when loading unqiue flair frequencies from between two epochs.\n", exit=True, alert=True)
             else:
                 return cursor.fetchall()
 
@@ -234,8 +234,6 @@ class DB_Flair_Frequency:
 @click.option("--append", "-a", is_flag=True, help="Choose to only append the most recent comments into the flair frequency table, rather than the whole comments table.")
 def main(remote, append):
     kwargs = {"remote": remote, DB_Flair_Frequency.APPEND_ARG: append}
-
-    kwargs["remote"] = True
 
     DB_Flair_Frequency(**kwargs)
 

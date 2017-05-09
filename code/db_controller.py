@@ -44,9 +44,9 @@ class DB_Controller:
                                        user=self.db_cfg["username"],
                                        password=self.db_cfg["password"])
         except psycopg2.OperationalError as e:
-            self.exception_helper.print(e, "Unable to connect to the database.\n", exit=True)
+            self.exception_helper.print(e, "Unable to connect to the database.\n", exit=True, alert=True)
         except Exception as e:
-            self.exception_helper.print(e, "Unexpected error when trying to connect to the database.\n", exit=True)
+            self.exception_helper.print(e, "Unexpected error when trying to connect to the database.\n", exit=True, alert=True)
 
         ## Get the table that'll be worked with
         self.table = self.db_cfg["table"]
@@ -80,14 +80,14 @@ class DB_Controller:
                 self.exception_helper.print(e, "Primary key integrity error.\n")
                 self.db.rollback()
             except Exception as e:
-                self.exception_helper.print(e, "Unexpected error when storing comment into the database.\n", exit=True)
+                self.exception_helper.print(e, "Unexpected error when storing comment into the database.\n", exit=True, alert=True)
             else:
 
                 ## Commit changes to the db
                 try:
                     self.db.commit()
                 except Exception as e:
-                    self.exception_helper.print(e, "Unexpected error when committing changes to the database.\n", exit=True)
+                    self.exception_helper.print(e, "Unexpected error when committing changes to the database.\n", exit=True, alert=True)
                 else:
                     if(callback):
                         callback()
@@ -100,14 +100,14 @@ class DB_Controller:
             try:
                 cursor.execute(raw.format(table, column), (value,))
             except Exception as e:
-                self.exception_helper.print(e, "Unexpected error when removing row with post_id: {0} from the database.\n".format(post_id), exit=True)
+                self.exception_helper.print(e, "Unexpected error when removing row with post_id: {0} from the database.\n".format(post_id), exit=True, alert=True)
             else:
 
                 ## Commit changes to the db
                 try:
                     self.db.commit()
                 except Exception as e:
-                    self.exception_helper.print(e, "Unexpected error when committing changes to the database.\n", exit=True)
+                    self.exception_helper.print(e, "Unexpected error when committing changes to the database.\n", exit=True, alert=True)
                 else:
                     if(callback):
                         callback()
