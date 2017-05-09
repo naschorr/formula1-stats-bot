@@ -72,15 +72,16 @@ class ExceptionHelper:
                 exit = True
                 del kwargs["exit"]
 
+        ## Determine if alert kwarg is supplied
+        if(kwargs.get("alert", False)):
+            self.alert()
+            del kwargs["alert"]
+
         ## Actual output
         print(output, exception, *args, **kwargs)
 
         ## Flush the output
         sys.stdout.flush()
-
-
-        if(kwargs.get("alert", False)):
-            self.alert()
 
         ## Exit if necessary
         if(exit):
